@@ -2,6 +2,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const authMiddleware = require('./middleware/authMiddleware');
 const generateRoutes = require('./routes/generate');
+const refineRoute = require("./routes/refine");
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -12,11 +13,11 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
-app.use('/generate', generateRoutes);
 app.get('/protected', authMiddleware, (req, res) => {
   res.json({ message: 'This is a protected route', user: req.user });
 });
-
+app.use('/generate', generateRoutes);
+app.use("/refine", refineRoute);
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))

@@ -1,53 +1,143 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const fetch = require("node-fetch");
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+/* ---------- SAME PREVIEW BUILDER AS generate.js ---------- */
+function buildInlinePreview(files) {
+  const html = files["index.html"] || "";
+  const css = files["style.css"] || "";
+  const js = files["script.js"] || "";
 
-router.post('/', async (req, res) => {
-  const { refinementPrompt, currentSIR } = req.body;
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<base href="/" />
+<style>${css}</style>
+</head>
+<body>
+${html
+  .replace(/<!DOCTYPE[^>]*>/i, "")
+  .replace(/<html[^>]*>|<\/html>/gi, "")
+  .replace(/<head[^>]*>[\\s\\S]*?<\/head>/i, "")
+  .replace(/<body[^>]*>|<\/body>/gi, "")
+}
+<script>${js}</script>
+</body>
+</html>
+`;
+}
 
-  // Basic validation
-  if (!refinementPrompt || !currentSIR) {
-    return res.status(400).json({ message: 'Invalid refinement request' });
+/* -------- REMOVE MARKDOWN -------- */
+function extractJSON(text) {
+  if (!text) return "";
+  return text.replace(/```json|```/g, "").trim();
+}
+
+/* -------- FIX INVALID ESCAPES -------- */
+function fixInvalidEscapes(text) {
+  return text.replace(/\\(?!["\\/bfnrtu])/g, "");
+}
+
+/* -------- SAFE PARSE -------- */
+function safeParse(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
   }
+}
+
+router.post("/", async (req, res) => {
+  const { files, refinementPrompt } = req.body;
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash'
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `
+You are modifying an existing project.
+
+CURRENT FILES:
+${JSON.stringify(files)}
+
+USER REQUEST:
+${refinementPrompt}
+
+STRICT RULES:
+- Modify ONLY required parts
+- Keep all other code EXACTLY the same
+- Return ONLY modified files
+- Return valid JSON
+
+FORMAT:
+{
+  "modifiedFiles": {
+    "filename": "updated content"
+  }
+}
+`
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: "application/json"
+        }
+      })
     });
 
-    const result = await model.generateContent(`
-You are an AI system that modifies website structures.
+    const raw = await response.json();
+    const rawText = raw?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-RULES:
-- Modify ONLY the part mentioned in the user request
-- Do NOT remove existing sections unless requested
-- Return the FULL updated website structure
-- Return ONLY valid JSON
-- No explanations, no markdown
+    if (!rawText) {
+      return res.status(500).json({ error: "Empty AI response" });
+    }
 
-Current Website JSON:
-${JSON.stringify(currentSIR, null, 2)}
+    let cleaned = extractJSON(rawText);
+    let parsed = safeParse(cleaned);
 
-User Change Request:
-${refinementPrompt}
-`);
+    if (!parsed) {
+      cleaned = fixInvalidEscapes(cleaned);
+      parsed = safeParse(cleaned);
+    }
 
-    // Gemini returns text output
-    const text = result.response.text();
+    if (!parsed) {
+      console.error("❌ Refinement JSON invalid:", cleaned);
+      return res.status(500).json({
+        error: "AI returned malformed JSON during refinement."
+      });
+    }
 
-    // Parse JSON safely
-    const updatedSIR = JSON.parse(text);
+    /* ---------- MERGE FILES ---------- */
+    const updatedFiles = {
+      ...files,
+      ...parsed.modifiedFiles
+    };
 
-    res.json({ sir: updatedSIR });
+    /* ---------- REBUILD PREVIEW ---------- */
+    const preview = {
+      home: buildInlinePreview(updatedFiles)
+    };
 
-  } catch (error) {
-    console.error('Gemini refinement error:', error.message);
+    res.json({
+      modifiedFiles: parsed.modifiedFiles,
+      preview
+    });
 
-    // Safe fallback → return original SIR unchanged
-    res.json({ sir: currentSIR });
+  } catch (err) {
+    console.error("REFINEMENT ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
