@@ -10,7 +10,7 @@ router.get("/", authMiddleware, async (req, res) => {
   try {
     const projects = await Project.find({ userId: req.user.id })
       .sort({ updatedAt: -1 })
-      .select("_id title prompt createdAt updatedAt");
+      .select("_id title prompt thumbnail createdAt updatedAt");
 
     res.json(projects);
   } catch (err) {
@@ -45,7 +45,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
 ========================================= */
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
-    const { code, preview } = req.body;
+    const { code, preview, thumbnail } = req.body;
 
     const updatedProject = await Project.findOneAndUpdate(
       {
@@ -55,6 +55,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
       {
         code,
         preview,
+        thumbnail,
         updatedAt: Date.now()
       },
       { new: true }

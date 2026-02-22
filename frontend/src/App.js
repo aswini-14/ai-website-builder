@@ -5,6 +5,7 @@ import Builder from './pages/Builder';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import ProtectedRoute from './components/ProtectedRoute';
+import HistoryPage from './pages/HistoryPage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/history" element={<HistoryPage />} />
       </Routes>
     </Router>
   );

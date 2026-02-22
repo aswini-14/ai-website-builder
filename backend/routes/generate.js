@@ -113,10 +113,7 @@ JSON FORMAT:
       pages: result.pages
     });
 
-    res.json({
-      ...result,
-      projectId: newProject._id
-    });
+    res.json(newProject);
 
   } catch (err) {
     console.error("GENERATION ERROR:", err);

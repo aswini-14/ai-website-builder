@@ -2,8 +2,10 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
+
 
 // Register Route
 router.post('/register', async (req, res) => {
@@ -100,6 +102,21 @@ router.post('/reset-password', async (req, res) => {
   await User.findByIdAndUpdate(userId, { password: hashedPassword });
 
   res.json({ message: 'Password updated successfully' });
+});
+
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("name email");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 

@@ -7,7 +7,8 @@ const ProjectSchema = new mongoose.Schema(
     prompt: { type: String },
     code: { type: Object },
     preview: { type: Object },
-    pages: { type: Array }
+    pages: { type: Array },
+    thumbnail: {type: String}
   },
   { timestamps: true }
 );

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { PanelLeft } from "lucide-react";
+import html2canvas from "html2canvas";
+
 import Navbar from "../components/Navbar";
 import CodePanel from "../components/CodePanel";
 import PreviewPanel from "../components/PreviewPanel";
@@ -60,6 +62,25 @@ function Builder() {
         result.pages?.find(p => p.entry) || result.pages?.[0];
 
       if (entry) setActivePage(entry.id);
+
+      /* ===============================
+        GENERATE & SAVE THUMBNAIL
+      =============================== */
+
+      if (entry && result.preview?.[entry.id]) {
+        const thumbnail = await generateThumbnail(result.preview[entry.id]);
+
+        await fetch(`http://localhost:5000/history/${result._id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            thumbnail
+          })
+        });
+      }
 
     } catch (err) {
       console.error(err);
@@ -171,6 +192,28 @@ function Builder() {
     setActivePage(null);
     setIsGenerated(false);
     setSelectedProjectId(null);
+  };
+
+  const generateThumbnail = async (htmlContent) => {
+    const tempDiv = document.createElement("div");
+    tempDiv.style.position = "fixed";
+    tempDiv.style.left = "-9999px";
+    tempDiv.style.top = "0";
+    tempDiv.style.width = "1024px";
+    tempDiv.innerHTML = htmlContent;
+
+    document.body.appendChild(tempDiv);
+
+    const canvas = await html2canvas(tempDiv, {
+      useCORS: true,
+      scale: 0.5
+    });
+
+    const image = canvas.toDataURL("image/png");
+
+    document.body.removeChild(tempDiv);
+
+    return image;
   };
 
   return (
