@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch");
-
+const Project = require("../models/Project");
+const authMiddleware = require("../middleware/authMiddleware");
 
 function extractJSON(text) {
   return text.replace(/```json|```/g, "").trim();
 }
-
 
 function buildInlinePreview(files) {
   const html = files["index.html"] || "";
@@ -34,7 +34,7 @@ ${html
 `;
 }
 
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   const { prompt } = req.body;
 
   try {
@@ -94,16 +94,29 @@ JSON FORMAT:
 
     const result = JSON.parse(extractJSON(rawText));
 
-    // Determine entry page
     const entryPage =
       result.pages?.find(p => p.entry) || result.pages?.[0];
 
-    // Build preview safely
     result.preview = {
       [entryPage.id]: buildInlinePreview(result.code.files)
     };
 
-    res.json(result);
+    /* =========================
+       SAVE TO HISTORY
+    ========================== */
+    const newProject = await Project.create({
+      userId: req.user.id,
+      title: result.project?.name || "Untitled Project",
+      prompt,
+      code: result.code,
+      preview: result.preview,
+      pages: result.pages
+    });
+
+    res.json({
+      ...result,
+      projectId: newProject._id
+    });
 
   } catch (err) {
     console.error("GENERATION ERROR:", err);

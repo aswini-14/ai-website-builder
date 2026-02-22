@@ -3,6 +3,7 @@ const authRoutes = require('./routes/auth');
 const authMiddleware = require('./middleware/authMiddleware');
 const generateRoutes = require('./routes/generate');
 const refineRoute = require("./routes/refine");
+const historyRoutes = require("./routes/history");
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -18,6 +19,7 @@ app.get('/protected', authMiddleware, (req, res) => {
 });
 app.use('/generate', generateRoutes);
 app.use("/refine", refineRoute);
+app.use("/history", historyRoutes);
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))

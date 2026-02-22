@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch");
+const Project = require("../models/Project");
+const authMiddleware = require("../middleware/authMiddleware");
 
-/* ---------- SAME PREVIEW BUILDER AS generate.js ---------- */
+/* ---------- PREVIEW BUILDER ---------- */
 function buildInlinePreview(files) {
   const html = files["index.html"] || "";
   const css = files["style.css"] || "";
@@ -49,8 +51,15 @@ function safeParse(text) {
   }
 }
 
-router.post("/", async (req, res) => {
-  const { files, refinementPrompt } = req.body;
+/* =========================================
+   REFINEMENT ROUTE
+========================================= */
+router.post("/", authMiddleware, async (req, res) => {
+  const { files, refinementPrompt, projectId } = req.body;
+
+  if (!projectId) {
+    return res.status(400).json({ error: "Project ID is required" });
+  }
 
   try {
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
@@ -130,9 +139,28 @@ FORMAT:
       home: buildInlinePreview(updatedFiles)
     };
 
+    /* ---------- AUTO SAVE TO DB ---------- */
+    const updatedProject = await Project.findOneAndUpdate(
+      {
+        _id: projectId,
+        userId: req.user.id
+      },
+      {
+        code: { files: updatedFiles },
+        preview,
+        updatedAt: Date.now()
+      },
+      { new: true }
+    );
+
+    if (!updatedProject) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
     res.json({
       modifiedFiles: parsed.modifiedFiles,
-      preview
+      preview,
+      project: updatedProject
     });
 
   } catch (err) {
