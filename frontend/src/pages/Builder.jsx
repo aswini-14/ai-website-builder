@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import {useEffect, useState } from "react";
 import { PanelLeft } from "lucide-react";
 import html2canvas from "html2canvas";
 
@@ -23,6 +24,50 @@ function Builder() {
   );
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [searchParams] = useSearchParams();
+  const projectIdFromURL = searchParams.get("project");
+
+  useEffect(() => {
+    if (!projectIdFromURL) return;
+
+    const fetchProject = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(
+          `http://localhost:5000/history/${projectIdFromURL}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch project");
+        }
+
+        const project = await res.json();
+
+        setData(project);
+        setIsGenerated(true);
+        setSelectedProjectId(project._id);
+
+        const firstFile = Object.keys(project.code?.files || {})[0];
+        if (firstFile) setActiveFile(firstFile);
+
+        const entry =
+          project.pages?.find(p => p.entry) || project.pages?.[0];
+
+        if (entry) setActivePage(entry.id);
+
+      } catch (err) {
+        console.error("Project load failed:", err);
+      }
+    };
+
+    fetchProject();
+  }, [projectIdFromURL]);
 
   /* ===============================
       GENERATE INITIAL PROJECT
