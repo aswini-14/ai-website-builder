@@ -1,4 +1,6 @@
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2 , Download} from "lucide-react";
+
+
 
 function CodePanel({
   data,
@@ -15,8 +17,43 @@ function CodePanel({
   handleCopy,
   handleSubmit,
   handleRefine,
-  mobileView
+  mobileView,
+  selectedProjectId
 }) {
+
+  const handleDownload = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `http://localhost:5000/history/${selectedProjectId}/download`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Download failed");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "project.zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+    } catch (err) {
+      console.error(err);
+      alert("Download failed");
+    }
+  };
+
   return (
     <div
       className={`bg-white dark:bg-gray-900 
@@ -33,13 +70,24 @@ function CodePanel({
         </div>
       )}
 
+      
+
       {/* GENERATED CODE */}
       {data?.code ? (
         <div className="flex flex-col flex-1 overflow-hidden px-4 py-2 text-gray-900 dark:text-gray-100">
 
-          <h2 className="text-xl mb-3 shrink-0">
-            Generated Code
-          </h2>
+          <div className="w-full flex items-center justify-between">
+            <h2 className="text-xl mb-3 shrink-0">
+              Generated Code
+            </h2>
+            <button
+              onClick={handleDownload}
+              className="p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
+              title="Download as ZIP"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+          </div>
 
           {/* FILE TABS */}
           <div className="flex gap-2 mb-3 overflow-x-auto">

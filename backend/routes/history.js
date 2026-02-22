@@ -1,4 +1,5 @@
 const express = require("express");
+const archiver = require("archiver");
 const router = express.Router();
 const Project = require("../models/Project");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -36,6 +37,38 @@ router.get("/:id", authMiddleware, async (req, res) => {
     res.json(project);
   } catch (err) {
     console.error("PROJECT FETCH ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/:id/download", authMiddleware, async (req, res) => {
+  try {
+    const project = await Project.findOne({
+      _id: req.params.id,
+      userId: req.user.id
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    const archive = archiver("zip", {
+      zlib: { level: 9 }
+    });
+
+    res.attachment(`${project.title || "project"}.zip`);
+    archive.pipe(res);
+
+    const files = project.code.files;
+
+    for (const filename in files) {
+      archive.append(files[filename], { name: filename });
+    }
+
+    await archive.finalize();
+
+  } catch (err) {
+    console.error("DOWNLOAD ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });

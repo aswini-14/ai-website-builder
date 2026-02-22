@@ -300,6 +300,7 @@ function Builder() {
             handleSubmit={handleSubmit}
             handleRefine={handleRefine}
             mobileView={mobileView}
+            selectedProjectId={selectedProjectId}
           />
 
           {/* PREVIEW PANEL */}
