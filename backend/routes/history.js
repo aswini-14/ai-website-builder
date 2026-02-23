@@ -11,14 +11,19 @@ router.get("/", authMiddleware, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 7;
+    const search = req.query.search || "";
 
     const skip = (page - 1) * limit;
 
-    const total = await Project.countDocuments({
-      userId: req.user.id
-    });
+    let query = { userId: req.user.id };
 
-    const projects = await Project.find({ userId: req.user.id })
+    if (search) {
+      query.prompt = { $regex: search, $options: "i" };
+    }
+
+    const total = await Project.countDocuments(query);
+
+    const projects = await Project.find(query)
       .sort({ updatedAt: -1 })
       .skip(skip)
       .limit(limit)
