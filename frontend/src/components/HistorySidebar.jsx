@@ -15,7 +15,7 @@ function HistorySidebar({ onSelectProject, onNewProject, selectedId, refreshKey 
       });
 
       const result = await res.json();
-      setHistory(result);
+      setHistory(result.projects || []);
     } catch (err) {
       console.error("History fetch failed");
     }

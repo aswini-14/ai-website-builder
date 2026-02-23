@@ -9,11 +9,27 @@ const authMiddleware = require("../middleware/authMiddleware");
 ========================================= */
 router.get("/", authMiddleware, async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 7;
+
+    const skip = (page - 1) * limit;
+
+    const total = await Project.countDocuments({
+      userId: req.user.id
+    });
+
     const projects = await Project.find({ userId: req.user.id })
       .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .select("_id title prompt thumbnail createdAt updatedAt");
 
-    res.json(projects);
+    res.json({
+      projects,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page
+    });
+
   } catch (err) {
     console.error("HISTORY FETCH ERROR:", err);
     res.status(500).json({ error: err.message });
