@@ -8,20 +8,37 @@ import SearchBar from "../components/SearchBar";
 function HistoryPage() {
   const [history, setHistory] = useState([]);
   const [viewMode, setViewMode] = useState("grid");
+
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const navigate = useNavigate();
 
+  /* ================= Fetch History ================= */
+
   const fetchHistory = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    const res = await fetch("http://localhost:5000/history", {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const result = await res.json();
-    setHistory(result.projects || []);
-  }, []);
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `http://localhost:5000/history?search=${searchQuery}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      const result = await res.json();
+      setHistory(result.projects || []);
+    } catch (err) {
+      console.error("Failed to fetch history");
+    }
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
+
+  /* ================= Handlers ================= */
 
   const handleOpenProject = (id) => {
     navigate(`/builder?project=${id}`);
@@ -29,14 +46,16 @@ function HistoryPage() {
 
   const handleDelete = async (id) => {
     const token = localStorage.getItem("token");
+
     await fetch(`http://localhost:5000/history/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` }
     });
+
     fetchHistory();
   };
 
-  /* ================= Layout Container ================= */
+  /* ================= Layout Modes ================= */
 
   const layoutClasses = {
     grid: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8",
@@ -46,16 +65,27 @@ function HistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:to-black">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-black transition-colors duration-300">
       <Navbar onLogout={() => navigate("/")} />
 
       <div className="max-w-7xl mx-auto px-6 py-12">
 
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        {/* ================= Header ================= */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-10">
+
           <h1 className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
             Project History
           </h1>
+
+          <SearchBar
+            value={searchInput}
+            onChange={(val) => setSearchInput(val)}
+            onSearch={() => setSearchQuery(searchInput)}
+            onClear={() => {
+              setSearchInput("");
+              setSearchQuery("");
+            }}
+          />
 
           <select
             value={viewMode}
@@ -75,9 +105,10 @@ function HistoryPage() {
             <option value="compact">Compact</option>
             <option value="detailed">Detailed</option>
           </select>
+
         </div>
 
-        {/* Layout Wrapper */}
+        {/* ================= Projects Layout ================= */}
         <div className={layoutClasses[viewMode]}>
 
           <NewProjectCard
