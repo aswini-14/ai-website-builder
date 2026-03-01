@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+import ThemeToggle from "./components/ThemeToggle";
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Builder from './pages/Builder';
@@ -25,6 +27,8 @@ function App() {
         />
         <Route path="/history" element={<HistoryPage />} />
       </Routes>
+
+      <ThemeToggle />
     </Router>
   );
 }

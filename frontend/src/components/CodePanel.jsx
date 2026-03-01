@@ -25,19 +25,11 @@ function CodePanel({
   mobileView,
   selectedProjectId
 }) {
-  /* ===============================
-      VOICE STATES
-  =============================== */
-
   const [isListeningGenerate, setIsListeningGenerate] = useState(false);
   const generateRecognitionRef = useRef(null);
 
   const [isListeningRefine, setIsListeningRefine] = useState(false);
   const refineRecognitionRef = useRef(null);
-
-  /* ===============================
-      SPEECH HELPER
-  =============================== */
 
   const createRecognition = (onResult, setListeningState, ref) => {
     if (!("webkitSpeechRecognition" in window)) {
@@ -52,30 +44,21 @@ function CodePanel({
     recognition.interimResults = false;
     recognition.lang = "en-IN";
 
-    recognition.onstart = () => {
-      setListeningState(true);
-    };
+    recognition.onstart = () => setListeningState(true);
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       onResult(transcript);
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event) =>
       console.error("Speech error:", event.error);
-    };
 
-    recognition.onend = () => {
-      setListeningState(false);
-    };
+    recognition.onend = () => setListeningState(false);
 
     recognition.start();
     ref.current = recognition;
   };
-
-  /* ===============================
-      GENERATE VOICE
-  =============================== */
 
   const startGenerateListening = () => {
     createRecognition(
@@ -92,10 +75,6 @@ function CodePanel({
     generateRecognitionRef.current?.stop();
   };
 
-  /* ===============================
-      REFINE VOICE
-  =============================== */
-
   const startRefineListening = () => {
     createRecognition(
       (transcript) =>
@@ -111,10 +90,6 @@ function CodePanel({
     refineRecognitionRef.current?.stop();
   };
 
-  /* ===============================
-      DOWNLOAD ZIP
-  =============================== */
-
   const handleDownload = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -128,9 +103,7 @@ function CodePanel({
         }
       );
 
-      if (!res.ok) {
-        throw new Error("Download failed");
-      }
+      if (!res.ok) throw new Error("Download failed");
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -150,30 +123,30 @@ function CodePanel({
   return (
     <div
       className={`bg-white dark:bg-gray-900 
-        w-full lg:w-1/2 flex flex-col 
-        rounded-3xl shadow-xl p-2 h-[80vh]
-        ${mobileView === "preview" ? "hidden lg:flex" : ""}`}
+      border border-gray-200 dark:border-gray-700
+      w-full lg:w-1/2 flex flex-col 
+      rounded-3xl shadow-xl p-2 h-[80vh]
+      transition-colors duration-300
+      ${mobileView === "preview" ? "hidden lg:flex" : ""}`}
     >
-      {/* TITLE AFTER GENERATION */}
+      {/* TITLE */}
       {isGenerated && (
-        <div className="px-6 py-3 border-b">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-50">
+        <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
             {prompt}
           </h2>
         </div>
       )}
 
-      {/* GENERATED CODE */}
+      {/* CODE SECTION */}
       {data?.code ? (
         <div className="flex flex-col flex-1 overflow-hidden px-4 py-2 text-gray-900 dark:text-gray-100">
           <div className="w-full flex items-center justify-between">
-            <h2 className="text-xl mb-3 shrink-0">
-              Generated Code
-            </h2>
+            <h2 className="text-xl mb-3">Generated Code</h2>
             <button
               onClick={handleDownload}
-              className="p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
-              title="Download as ZIP"
+              className="p-2 bg-indigo-600 hover:bg-indigo-700 
+              text-white rounded-xl transition"
             >
               <Download className="w-5 h-5" />
             </button>
@@ -185,7 +158,7 @@ function CodePanel({
               <button
                 key={file}
                 onClick={() => setActiveFile(file)}
-                className={`px-3 py-1 text-sm rounded-lg ${
+                className={`px-3 py-1 text-sm rounded-lg transition ${
                   activeFile === file
                     ? "bg-indigo-600 text-white"
                     : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
@@ -209,7 +182,10 @@ function CodePanel({
                   {copiedFile === activeFile ? "Copied ✔" : "Copy"}
                 </button>
 
-                <pre className="text-sm whitespace-pre-wrap break-words bg-gray-100 dark:bg-gray-800 p-3 pt-10 rounded-lg">
+                <pre className="text-sm whitespace-pre-wrap break-words 
+                bg-gray-100 dark:bg-gray-800 
+                text-gray-800 dark:text-gray-200
+                p-3 pt-10 rounded-lg transition-colors duration-300">
                   {data.code.files[activeFile]}
                 </pre>
               </>
@@ -217,18 +193,23 @@ function CodePanel({
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-gray-400">
+        <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500">
           No code generated yet
         </div>
       )}
 
       {/* GENERATE SECTION */}
       {!isGenerated && (
-        <div className="px-6 py-4 shrink-0">
+        <div className="px-6 py-4 shrink-0 border-t border-gray-200 dark:border-gray-700">
           <div className="relative">
             <textarea
               rows="4"
-              className="w-full px-4 py-3 pr-14 border-2 border-gray-200 rounded-xl"
+              className="w-full px-4 py-3 pr-14 
+              bg-white dark:bg-gray-800
+              text-gray-900 dark:text-gray-100
+              border-2 border-gray-200 dark:border-gray-700
+              rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500
+              transition"
               placeholder="Describe website + tech stack"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -241,7 +222,7 @@ function CodePanel({
                   ? stopGenerateListening
                   : startGenerateListening
               }
-              className={`absolute top-3 right-3 p-2 rounded-full ${
+              className={`absolute top-3 right-3 p-2 rounded-full transition ${
                 isListeningGenerate
                   ? "bg-red-500 text-white"
                   : "bg-indigo-600 text-white"
@@ -256,7 +237,7 @@ function CodePanel({
           </div>
 
           {isListeningGenerate && (
-            <div className="text-sm text-gray-500 mt-2 animate-pulse">
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 animate-pulse">
               Listening...
             </div>
           )}
@@ -265,7 +246,8 @@ function CodePanel({
             <button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="px-8 py-3 bg-indigo-600 text-white rounded-xl flex gap-2 items-center"
+              className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 
+              text-white rounded-xl flex gap-2 items-center transition"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin w-5 h-5" />
@@ -280,11 +262,16 @@ function CodePanel({
 
       {/* REFINE SECTION */}
       {isGenerated && data?.code && (
-        <div className="px-6 py-4 border-t">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
           <div className="relative">
             <textarea
               rows="3"
-              className="w-full px-4 py-3 pr-14 border-2 border-gray-200 rounded-xl"
+              className="w-full px-4 py-3 pr-14 
+              bg-white dark:bg-gray-800
+              text-gray-900 dark:text-gray-100
+              border-2 border-gray-200 dark:border-gray-700
+              rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500
+              transition"
               placeholder="Refine code (e.g., Change button color to orange)"
               value={refinementPrompt}
               onChange={(e) =>
@@ -299,7 +286,7 @@ function CodePanel({
                   ? stopRefineListening
                   : startRefineListening
               }
-              className={`absolute top-3 right-3 p-2 rounded-full ${
+              className={`absolute top-3 right-3 p-2 rounded-full transition ${
                 isListeningRefine
                   ? "bg-red-500 text-white"
                   : "bg-green-600 text-white"
@@ -314,7 +301,7 @@ function CodePanel({
           </div>
 
           {isListeningRefine && (
-            <div className="text-sm text-gray-500 mt-2 animate-pulse">
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 animate-pulse">
               Listening...
             </div>
           )}
@@ -323,7 +310,8 @@ function CodePanel({
             <button
               onClick={handleRefine}
               disabled={isRefining}
-              className="px-6 py-2 bg-green-600 text-white rounded-xl"
+              className="px-6 py-2 bg-green-600 hover:bg-green-700 
+              text-white rounded-xl transition"
             >
               {isRefining ? "Refining..." : "Refine"}
             </button>

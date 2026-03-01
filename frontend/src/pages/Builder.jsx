@@ -1,7 +1,6 @@
 import { useSearchParams } from "react-router-dom";
-import {useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { PanelLeft } from "lucide-react";
-import html2canvas from "html2canvas";
 
 import Navbar from "../components/Navbar";
 import CodePanel from "../components/CodePanel";
@@ -24,8 +23,14 @@ function Builder() {
   );
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+
+
   const [searchParams] = useSearchParams();
   const projectIdFromURL = searchParams.get("project");
+
+  /* ===============================
+      LOAD PROJECT FROM URL
+  =============================== */
 
   useEffect(() => {
     if (!projectIdFromURL) return;
@@ -43,9 +48,7 @@ function Builder() {
           }
         );
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch project");
-        }
+        if (!res.ok) throw new Error("Failed to fetch project");
 
         const project = await res.json();
 
@@ -70,8 +73,9 @@ function Builder() {
   }, [projectIdFromURL]);
 
   /* ===============================
-      GENERATE INITIAL PROJECT
+      GENERATE PROJECT
   =============================== */
+
   const handleSubmit = async () => {
     if (!prompt.trim()) return;
 
@@ -89,9 +93,7 @@ function Builder() {
         body: JSON.stringify({ prompt })
       });
 
-      if (!res.ok) {
-        throw new Error("Generate failed");
-      }
+      if (!res.ok) throw new Error("Generate failed");
 
       const result = await res.json();
 
@@ -108,25 +110,6 @@ function Builder() {
 
       if (entry) setActivePage(entry.id);
 
-      /* ===============================
-        GENERATE & SAVE THUMBNAIL
-      =============================== */
-
-      if (entry && result.preview?.[entry.id]) {
-        const thumbnail = await generateThumbnail(result.preview[entry.id]);
-
-        await fetch(`http://localhost:5000/history/${result._id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            thumbnail
-          })
-        });
-      }
-
     } catch (err) {
       console.error(err);
       alert("Error generating website");
@@ -135,9 +118,6 @@ function Builder() {
     }
   };
 
-  /* ===============================
-      REFINEMENT FEATURE
-  =============================== */
   const handleRefine = async () => {
     if (!refinementPrompt.trim() || !data?.code?.files) return;
 
@@ -159,9 +139,7 @@ function Builder() {
         })
       });
 
-      if (!res.ok) {
-        throw new Error("Refine failed");
-      }
+      if (!res.ok) throw new Error("Refine failed");
 
       const result = await res.json();
 
@@ -191,113 +169,40 @@ function Builder() {
     }
   };
 
-  /* ===============================
-      COPY FEATURE
-  =============================== */
   const handleCopy = (content, file) => {
     navigator.clipboard.writeText(content);
     setCopiedFile(file);
     setTimeout(() => setCopiedFile(null), 1500);
   };
 
-  /* ===============================
-      LOGOUT
-  =============================== */
   const handleLogout = () => {
     localStorage.removeItem("token");
     window.location.href = "/";
   };
 
-  /* ===============================
-      LOAD PROJECT FROM HISTORY
-  =============================== */
-  const handleProjectLoad = (project) => {
-    setData(project);
-    setIsGenerated(true);
-    setSelectedProjectId(project._id);
-    setPrompt(project.prompt || "");
-
-    const firstFile = Object.keys(project.code?.files || {})[0];
-    if (firstFile) setActiveFile(firstFile);
-
-    const entry =
-      project.pages?.find(p => p.entry) || project.pages?.[0];
-
-    if (entry) setActivePage(entry.id);
-  };
-
-  /* ===============================
-      START NEW PROJECT
-  =============================== */
-  const handleNewProject = () => {
-    setPrompt("");
-    setRefinementPrompt("");
-    setData(null);
-    setActiveFile(null);
-    setActivePage(null);
-    setIsGenerated(false);
-    setSelectedProjectId(null);
-  };
-
-  const generateThumbnail = async (htmlContent) => {
-    const tempDiv = document.createElement("div");
-    tempDiv.style.position = "fixed";
-    tempDiv.style.left = "-9999px";
-    tempDiv.style.top = "0";
-    tempDiv.style.width = "1024px";
-    tempDiv.innerHTML = htmlContent;
-
-    document.body.appendChild(tempDiv);
-
-    const canvas = await html2canvas(tempDiv, {
-      useCORS: true,
-      scale: 0.5
-    });
-
-    const image = canvas.toDataURL("image/png");
-
-    document.body.removeChild(tempDiv);
-
-    return image;
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-
-      <Navbar onLogout={handleLogout} />
+    <div
+      className="
+        min-h-screen
+        bg-gradient-to-br
+        from-indigo-50 via-white to-purple-50
+        dark:from-gray-900 dark:via-gray-950 dark:to-black
+        transition-colors duration-300
+      "
+    >
+      <Navbar
+        onLogout={handleLogout}
+      />
 
       <div className="max-w-full mx-auto px-6 py-12">
-
-        {/* MOBILE TOGGLE */}
-        <div className="flex lg:hidden mb-4 gap-2">
-          <button
-            onClick={() => setMobileView("code")}
-            className={`flex-1 py-2 rounded-xl ${
-              mobileView === "code"
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
-          >
-            Code
-          </button>
-
-          <button
-            onClick={() => setMobileView("preview")}
-            className={`flex-1 py-2 rounded-xl ${
-              mobileView === "preview"
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
-          >
-            Preview
-          </button>
-        </div>
 
         <div className="w-full flex flex-col lg:flex-row gap-6">
 
           {/* HISTORY SIDEBAR */}
           <div
-            className={`bg-white shadow-xl rounded-3xl p-4
+            className={`bg-white dark:bg-gray-900
+              border border-gray-200 dark:border-gray-700
+              shadow-xl rounded-3xl p-4
               h-[80vh] overflow-y-auto
               transition-all duration-300
               ${showHistory ? "w-64" : "w-16"}
@@ -305,30 +210,32 @@ function Builder() {
           >
             <div className="flex items-center justify-between mb-4">
               {showHistory && (
-                <h2 className="text-lg font-semibold text-gray-800">
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                   History
                 </h2>
               )}
 
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className="p-2 rounded-lg hover:bg-gray-200 transition"
+                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition"
               >
-                <PanelLeft className="w-6 h-6 text-gray-700" />
+                <PanelLeft className="w-6 h-6 text-gray-700 dark:text-gray-300" />
               </button>
             </div>
 
             {showHistory && (
               <HistorySidebar
-                onSelectProject={handleProjectLoad}
-                onNewProject={handleNewProject}
+                onSelectProject={(project) => {
+                  setData(project);
+                  setIsGenerated(true);
+                  setSelectedProjectId(project._id);
+                }}
                 selectedId={selectedProjectId}
                 refreshKey={historyRefreshKey}
               />
             )}
           </div>
 
-          {/* CODE PANEL */}
           <CodePanel
             data={data}
             prompt={prompt}
@@ -348,7 +255,6 @@ function Builder() {
             selectedProjectId={selectedProjectId}
           />
 
-          {/* PREVIEW PANEL */}
           <PreviewPanel
             data={data}
             activePage={activePage}
