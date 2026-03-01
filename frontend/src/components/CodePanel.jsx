@@ -1,6 +1,11 @@
-import { Sparkles, Loader2 , Download} from "lucide-react";
-
-
+import {
+  Sparkles,
+  Loader2,
+  Download,
+  Mic,
+  MicOff
+} from "lucide-react";
+import { useState, useRef } from "react";
 
 function CodePanel({
   data,
@@ -20,6 +25,95 @@ function CodePanel({
   mobileView,
   selectedProjectId
 }) {
+  /* ===============================
+      VOICE STATES
+  =============================== */
+
+  const [isListeningGenerate, setIsListeningGenerate] = useState(false);
+  const generateRecognitionRef = useRef(null);
+
+  const [isListeningRefine, setIsListeningRefine] = useState(false);
+  const refineRecognitionRef = useRef(null);
+
+  /* ===============================
+      SPEECH HELPER
+  =============================== */
+
+  const createRecognition = (onResult, setListeningState, ref) => {
+    if (!("webkitSpeechRecognition" in window)) {
+      alert("Speech recognition not supported in this browser.");
+      return;
+    }
+
+    const SpeechRecognition = window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-IN";
+
+    recognition.onstart = () => {
+      setListeningState(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      onResult(transcript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech error:", event.error);
+    };
+
+    recognition.onend = () => {
+      setListeningState(false);
+    };
+
+    recognition.start();
+    ref.current = recognition;
+  };
+
+  /* ===============================
+      GENERATE VOICE
+  =============================== */
+
+  const startGenerateListening = () => {
+    createRecognition(
+      (transcript) =>
+        setPrompt((prev) =>
+          prev ? prev + " " + transcript : transcript
+        ),
+      setIsListeningGenerate,
+      generateRecognitionRef
+    );
+  };
+
+  const stopGenerateListening = () => {
+    generateRecognitionRef.current?.stop();
+  };
+
+  /* ===============================
+      REFINE VOICE
+  =============================== */
+
+  const startRefineListening = () => {
+    createRecognition(
+      (transcript) =>
+        setRefinementPrompt((prev) =>
+          prev ? prev + " " + transcript : transcript
+        ),
+      setIsListeningRefine,
+      refineRecognitionRef
+    );
+  };
+
+  const stopRefineListening = () => {
+    refineRecognitionRef.current?.stop();
+  };
+
+  /* ===============================
+      DOWNLOAD ZIP
+  =============================== */
 
   const handleDownload = async () => {
     try {
@@ -47,7 +141,6 @@ function CodePanel({
       document.body.appendChild(a);
       a.click();
       a.remove();
-
     } catch (err) {
       console.error(err);
       alert("Download failed");
@@ -61,7 +154,7 @@ function CodePanel({
         rounded-3xl shadow-xl p-2 h-[80vh]
         ${mobileView === "preview" ? "hidden lg:flex" : ""}`}
     >
-      {/* PROMPT TITLE AFTER GENERATION */}
+      {/* TITLE AFTER GENERATION */}
       {isGenerated && (
         <div className="px-6 py-3 border-b">
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-50">
@@ -70,12 +163,9 @@ function CodePanel({
         </div>
       )}
 
-      
-
       {/* GENERATED CODE */}
       {data?.code ? (
         <div className="flex flex-col flex-1 overflow-hidden px-4 py-2 text-gray-900 dark:text-gray-100">
-
           <div className="w-full flex items-center justify-between">
             <h2 className="text-xl mb-3 shrink-0">
               Generated Code
@@ -132,16 +222,44 @@ function CodePanel({
         </div>
       )}
 
-      {/* GENERATE TEXTAREA (ONLY BEFORE GENERATION) */}
+      {/* GENERATE SECTION */}
       {!isGenerated && (
         <div className="px-6 py-4 shrink-0">
-          <textarea
-            rows="4"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl"
-            placeholder="Describe website + tech stack"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-          />
+          <div className="relative">
+            <textarea
+              rows="4"
+              className="w-full px-4 py-3 pr-14 border-2 border-gray-200 rounded-xl"
+              placeholder="Describe website + tech stack"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+            />
+
+            <button
+              type="button"
+              onClick={
+                isListeningGenerate
+                  ? stopGenerateListening
+                  : startGenerateListening
+              }
+              className={`absolute top-3 right-3 p-2 rounded-full ${
+                isListeningGenerate
+                  ? "bg-red-500 text-white"
+                  : "bg-indigo-600 text-white"
+              }`}
+            >
+              {isListeningGenerate ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+
+          {isListeningGenerate && (
+            <div className="text-sm text-gray-500 mt-2 animate-pulse">
+              Listening...
+            </div>
+          )}
 
           <div className="flex justify-end mt-4">
             <button
@@ -160,16 +278,46 @@ function CodePanel({
         </div>
       )}
 
-      {/* REFINEMENT SECTION (ONLY AFTER GENERATION) */}
+      {/* REFINE SECTION */}
       {isGenerated && data?.code && (
         <div className="px-6 py-4 border-t">
-          <textarea
-            rows="3"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl"
-            placeholder="Refine code (e.g., Change button color to orange)"
-            value={refinementPrompt}
-            onChange={(e) => setRefinementPrompt(e.target.value)}
-          />
+          <div className="relative">
+            <textarea
+              rows="3"
+              className="w-full px-4 py-3 pr-14 border-2 border-gray-200 rounded-xl"
+              placeholder="Refine code (e.g., Change button color to orange)"
+              value={refinementPrompt}
+              onChange={(e) =>
+                setRefinementPrompt(e.target.value)
+              }
+            />
+
+            <button
+              type="button"
+              onClick={
+                isListeningRefine
+                  ? stopRefineListening
+                  : startRefineListening
+              }
+              className={`absolute top-3 right-3 p-2 rounded-full ${
+                isListeningRefine
+                  ? "bg-red-500 text-white"
+                  : "bg-green-600 text-white"
+              }`}
+            >
+              {isListeningRefine ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+
+          {isListeningRefine && (
+            <div className="text-sm text-gray-500 mt-2 animate-pulse">
+              Listening...
+            </div>
+          )}
 
           <div className="flex justify-end mt-3">
             <button
