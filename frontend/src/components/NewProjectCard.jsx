@@ -1,42 +1,80 @@
-function NewProjectCard({ onClick }) {
-  return (
-    <div
-      onClick={onClick}
-      className="
-        bg-white dark:bg-gray-900
-        border border-gray-200 dark:border-gray-700
-        rounded-3xl shadow-xl 
-        hover:shadow-2xl 
-        hover:-translate-y-1 
-        hover:ring-2 hover:ring-indigo-300 dark:hover:ring-indigo-500
-        transition-all duration-300
-        cursor-pointer 
-        flex flex-col items-center justify-center 
-        p-8 text-center
-      "
-    >
-      <div className="
-        w-14 h-14 
-        bg-indigo-100 dark:bg-indigo-900/40
-        rounded-full 
-        flex items-center justify-center 
-        mb-4
-        transition-colors
-      ">
-        <span className="text-3xl text-indigo-600 dark:text-indigo-400 font-bold">
+function NewProjectCard({ onClick, view }) {
+  const base = `
+    bg-white dark:bg-gray-900
+    border border-gray-200 dark:border-gray-700
+    transition-all duration-300
+    cursor-pointer
+    flex items-center justify-center
+  `;
+
+  /* GRID */
+  if (view === "grid") {
+    return (
+      <div
+        onClick={onClick}
+        className={`${base}
+          rounded-3xl shadow-xl p-8 text-center
+          hover:shadow-2xl hover:-translate-y-1
+        `}
+      >
+        <div className="text-4xl text-indigo-600 dark:text-indigo-400 font-bold">
           +
+        </div>
+      </div>
+    );
+  }
+
+  /* LIST */
+  if (view === "list") {
+    return (
+      <div
+        onClick={onClick}
+        className={`${base}
+          rounded-xl p-4 hover:shadow-lg
+        `}
+      >
+        <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+          + New Project
         </span>
       </div>
+    );
+  }
 
-      <h2 className="text-lg font-semibold text-indigo-600 dark:text-indigo-400">
-        New Project
-      </h2>
+  /* COMPACT */
+  if (view === "compact") {
+    return (
+      <div
+        onClick={onClick}
+        className={`${base}
+          rounded-xl p-3 hover:shadow-md
+        `}
+      >
+        <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+          + New
+        </span>
+      </div>
+    );
+  }
 
-      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-        Start building something new
-      </p>
-    </div>
-  );
+  /* DETAILED */
+  if (view === "detailed") {
+    return (
+      <div
+        onClick={onClick}
+        className={`${base}
+          rounded-2xl p-6 hover:shadow-xl
+        `}
+      >
+        <div>
+          <h2 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+            Create New Project
+          </h2>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export default NewProjectCard;
