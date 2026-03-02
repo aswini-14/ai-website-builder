@@ -5,12 +5,22 @@ const Project = require("../models/Project");
 const authMiddleware = require("../middleware/authMiddleware");
 
 /* ===============================
-   SAFE PREVIEW BUILDER
+   CLEAN + SAFE PREVIEW BUILDER
 ================================= */
 function buildInlinePreview(files) {
   const html = files["index.html"] || "";
   const css = files["style.css"] || "";
   const js = files["script.js"] || "";
+
+  const cleanedHTML = html
+    .replace(/<!DOCTYPE[^>]*>/i, "")
+    .replace(/<html[^>]*>|<\/html>/gi, "")
+    .replace(/<head[^>]*>[\s\S]*?<\/head>/i, "")
+    .replace(/<body[^>]*>|<\/body>/gi, "")
+    // remove external script tags
+    .replace(/<script[^>]*src=["'][^"']+["'][^>]*><\/script>/gi, "")
+    // remove external css links
+    .replace(/<link[^>]*href=["'][^"']+["'][^>]*>/gi, "");
 
   return `
 <!DOCTYPE html>
@@ -23,7 +33,6 @@ ${css}
 </head>
 <body>
 
-<!-- Prevent navigation outside iframe -->
 <script>
 document.addEventListener("click", function(e) {
   const link = e.target.closest("a");
@@ -33,12 +42,7 @@ document.addEventListener("click", function(e) {
 });
 </script>
 
-${html
-  .replace(/<!DOCTYPE[^>]*>/i, "")
-  .replace(/<html[^>]*>|<\/html>/gi, "")
-  .replace(/<head[^>]*>[\\s\\S]*?<\/head>/i, "")
-  .replace(/<body[^>]*>|<\/body>/gi, "")
-}
+${cleanedHTML}
 
 <script>
 try {
@@ -64,7 +68,6 @@ router.post("/", authMiddleware, async (req, res) => {
   const { prompt } = req.body;
 
   try {
-    // 🔥 Detect React / Node keywords
     const lowerPrompt = prompt.toLowerCase();
     const wantsSPA =
       lowerPrompt.includes("react") ||
@@ -75,27 +78,25 @@ router.post("/", authMiddleware, async (req, res) => {
 
     const generationInstruction = wantsSPA
       ? `
-User requested React/Node or SPA.
-Instead, generate a SINGLE PAGE APPLICATION using:
+Generate a SINGLE PAGE APPLICATION using:
 
 - Only HTML
 - CSS
 - JavaScript
 - One index.html
-- Dynamic section switching (show/hide)
+- Dynamic show/hide section switching
 - No page reload
-- Use buttons (not href navigation)
+- No href navigation
 
 DO NOT use React, Node, import/export, require, JSX, modules.
 `
       : `
-Generate a traditional STATIC website:
+Generate a STATIC website using:
 
 - HTML
 - CSS
 - JavaScript
-- Multiple pages allowed
-- Standard navigation links
+- Standard navigation
 
 DO NOT use React, Node, import/export, require, JSX, modules.
 `;
@@ -116,7 +117,7 @@ ${prompt}
 
 ${generationInstruction}
 
-Must return JSON:
+Return ONLY valid JSON:
 
 {
   "project": { "name": "", "techStack": [] },
@@ -142,7 +143,7 @@ Must return JSON:
     });
 
     const raw = await response.json();
-    const rawText = raw.candidates?.[0]?.content?.parts?.[0]?.text;
+    const rawText = raw?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!rawText) throw new Error("Empty AI response");
 

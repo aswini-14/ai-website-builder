@@ -4,17 +4,30 @@ const fetch = require("node-fetch");
 const Project = require("../models/Project");
 const authMiddleware = require("../middleware/authMiddleware");
 
+/* ===============================
+   CLEAN + SAFE PREVIEW BUILDER
+================================= */
 function buildInlinePreview(files) {
   const html = files["index.html"] || "";
   const css = files["style.css"] || "";
   const js = files["script.js"] || "";
+
+  const cleanedHTML = html
+    .replace(/<!DOCTYPE[^>]*>/i, "")
+    .replace(/<html[^>]*>|<\/html>/gi, "")
+    .replace(/<head[^>]*>[\s\S]*?<\/head>/i, "")
+    .replace(/<body[^>]*>|<\/body>/gi, "")
+    .replace(/<script[^>]*src=["'][^"']+["'][^>]*><\/script>/gi, "")
+    .replace(/<link[^>]*href=["'][^"']+["'][^>]*>/gi, "");
 
   return `
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8" />
-<style>${css}</style>
+<style>
+${css}
+</style>
 </head>
 <body>
 
@@ -27,12 +40,7 @@ document.addEventListener("click", function(e) {
 });
 </script>
 
-${html
-  .replace(/<!DOCTYPE[^>]*>/i, "")
-  .replace(/<html[^>]*>|<\/html>/gi, "")
-  .replace(/<head[^>]*>[\\s\\S]*?<\/head>/i, "")
-  .replace(/<body[^>]*>|<\/body>/gi, "")
-}
+${cleanedHTML}
 
 <script>
 try {
@@ -51,6 +59,9 @@ function extractJSON(text) {
   return text.replace(/```json|```/g, "").trim();
 }
 
+/* ===============================
+   REFINE ROUTE
+================================= */
 router.post("/", authMiddleware, async (req, res) => {
   const { files, refinementPrompt, projectId } = req.body;
 
@@ -100,6 +111,8 @@ Return ONLY valid JSON:
     const raw = await response.json();
     const rawText = raw?.candidates?.[0]?.content?.parts?.[0]?.text;
 
+    if (!rawText) throw new Error("Empty AI response");
+
     const parsed = JSON.parse(extractJSON(rawText));
 
     const updatedFiles = {
@@ -111,7 +124,11 @@ Return ONLY valid JSON:
 
     const updatedProject = await Project.findOneAndUpdate(
       { _id: projectId, userId: req.user.id },
-      { code: { files: updatedFiles }, preview },
+      {
+        code: { files: updatedFiles },
+        preview,
+        updatedAt: Date.now()
+      },
       { new: true }
     );
 
@@ -127,4 +144,4 @@ Return ONLY valid JSON:
   }
 });
 
-module.exports = router;
+module.exports = router;  
