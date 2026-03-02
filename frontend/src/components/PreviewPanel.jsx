@@ -1,4 +1,13 @@
-function PreviewPanel({ data, activePage, mobileView }) {
+function PreviewPanel({ data, mobileView }) {
+
+  // 🔥 SUPPORT BOTH STRING AND OBJECT
+  const previewContent =
+    typeof data?.preview === "string"
+      ? data.preview
+      : typeof data?.preview === "object"
+        ? Object.values(data.preview)[0]
+        : null;
+
   return (
     <div
       className={`
@@ -14,12 +23,13 @@ function PreviewPanel({ data, activePage, mobileView }) {
         Live Preview
       </h2>
 
-      {data?.preview && activePage ? (
-        <div className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transition-colors duration-300">
+      {previewContent ? (
+        <div className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
           <iframe
+            key={data?._id}
             title="preview"
-            srcDoc={data.preview[activePage]}
-            sandbox="allow-scripts allow-forms"
+            srcDoc={previewContent}
+            sandbox="allow-scripts allow-forms allow-same-origin"
             className="w-full h-full"
           />
         </div>

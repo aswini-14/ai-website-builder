@@ -4,10 +4,9 @@ const fetch = require("node-fetch");
 const Project = require("../models/Project");
 const authMiddleware = require("../middleware/authMiddleware");
 
-function extractJSON(text) {
-  return text.replace(/```json|```/g, "").trim();
-}
-
+/* ===============================
+   SAFE PREVIEW BUILDER
+================================= */
 function buildInlinePreview(files) {
   const html = files["index.html"] || "";
   const css = files["style.css"] || "";
@@ -18,26 +17,89 @@ function buildInlinePreview(files) {
 <html>
 <head>
 <meta charset="UTF-8" />
-<base href="/" />
-<style>${css}</style>
+<style>
+${css}
+</style>
 </head>
 <body>
+
+<!-- Prevent navigation outside iframe -->
+<script>
+document.addEventListener("click", function(e) {
+  const link = e.target.closest("a");
+  if (link && link.getAttribute("href")) {
+    e.preventDefault();
+  }
+});
+</script>
+
 ${html
   .replace(/<!DOCTYPE[^>]*>/i, "")
   .replace(/<html[^>]*>|<\/html>/gi, "")
-  .replace(/<head[^>]*>[\s\S]*?<\/head>/i, "")
+  .replace(/<head[^>]*>[\\s\\S]*?<\/head>/i, "")
   .replace(/<body[^>]*>|<\/body>/gi, "")
 }
-<script>${js}</script>
+
+<script>
+try {
+${js}
+} catch(e) {
+console.error("Preview Script Error:", e);
+}
+</script>
+
 </body>
 </html>
 `;
 }
 
+function extractJSON(text) {
+  return text.replace(/```json|```/g, "").trim();
+}
+
+/* ===============================
+   GENERATE ROUTE
+================================= */
 router.post("/", authMiddleware, async (req, res) => {
   const { prompt } = req.body;
 
   try {
+    // 🔥 Detect React / Node keywords
+    const lowerPrompt = prompt.toLowerCase();
+    const wantsSPA =
+      lowerPrompt.includes("react") ||
+      lowerPrompt.includes("node") ||
+      lowerPrompt.includes("express") ||
+      lowerPrompt.includes("spa") ||
+      lowerPrompt.includes("single page");
+
+    const generationInstruction = wantsSPA
+      ? `
+User requested React/Node or SPA.
+Instead, generate a SINGLE PAGE APPLICATION using:
+
+- Only HTML
+- CSS
+- JavaScript
+- One index.html
+- Dynamic section switching (show/hide)
+- No page reload
+- Use buttons (not href navigation)
+
+DO NOT use React, Node, import/export, require, JSX, modules.
+`
+      : `
+Generate a traditional STATIC website:
+
+- HTML
+- CSS
+- JavaScript
+- Multiple pages allowed
+- Standard navigation links
+
+DO NOT use React, Node, import/export, require, JSX, modules.
+`;
+
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
     const response = await fetch(API_URL, {
@@ -52,21 +114,13 @@ router.post("/", authMiddleware, async (req, res) => {
                 text: `
 ${prompt}
 
-STRICT RULES:
-- Return ONLY valid JSON
-- Generate REAL project code (multi-file)
-- Do NOT inline CSS/JS in real code
-- Backend will build preview
+${generationInstruction}
 
-JSON FORMAT:
+Must return JSON:
+
 {
-  "project": {
-    "name": "",
-    "techStack": []
-  },
-  "pages": [
-    { "id": "home", "route": "/", "title": "Home", "entry": true }
-  ],
+  "project": { "name": "", "techStack": [] },
+  "pages": [],
   "code": {
     "files": {
       "index.html": "",
@@ -94,22 +148,14 @@ JSON FORMAT:
 
     const result = JSON.parse(extractJSON(rawText));
 
-    const entryPage =
-      result.pages?.find(p => p.entry) || result.pages?.[0];
+    const preview = buildInlinePreview(result.code.files);
 
-    result.preview = {
-      [entryPage.id]: buildInlinePreview(result.code.files)
-    };
-
-    /* =========================
-       SAVE TO HISTORY
-    ========================== */
     const newProject = await Project.create({
       userId: req.user.id,
       title: result.project?.name || "Untitled Project",
       prompt,
       code: result.code,
-      preview: result.preview,
+      preview,
       pages: result.pages
     });
 

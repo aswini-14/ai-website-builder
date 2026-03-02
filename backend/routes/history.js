@@ -27,7 +27,8 @@ router.get("/", authMiddleware, async (req, res) => {
       .sort({ updatedAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select("_id title prompt thumbnail createdAt updatedAt");
+      // 🔥 ADD preview HERE
+      .select("_id title prompt preview createdAt updatedAt");
 
     res.json({
       projects,

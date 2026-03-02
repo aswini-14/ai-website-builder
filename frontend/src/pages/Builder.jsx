@@ -333,8 +333,8 @@ function Builder() {
 
             <div style={{ width: `${100 - codePanelWidth}%` }} className="flex-shrink-0 min-w-0 h-full">
               <PreviewPanel
+                key={selectedProjectId}
                 data={data}
-                activePage={activePage}
                 mobileView={mobileView}
               />
             </div>

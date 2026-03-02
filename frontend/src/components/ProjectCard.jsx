@@ -38,7 +38,7 @@ function ProjectCard({ project, onOpen, onDelete, view = "grid" }) {
         ${containerStyles[view]}
       `}
     >
-      {/* ================= GRID DELETE (TOP RIGHT) ================= */}
+      {/* DELETE BUTTON */}
       {view === "grid" && (
         <button
           onClick={handleDelete}
@@ -55,31 +55,41 @@ function ProjectCard({ project, onOpen, onDelete, view = "grid" }) {
         </button>
       )}
 
-      {/* ================= Thumbnail ================= */}
+      {/* PREVIEW */}
       {(view === "grid" || view === "detailed") && (
-        <div
-          className={`
-            ${view === "grid" ? "aspect-video" : "w-48 h-28"}
-            bg-gray-100 dark:bg-gray-800
-            ${view === "grid" ? "" : "rounded-lg"}
-            overflow-hidden
-          `}
-        >
-          {project.thumbnail ? (
-            <img
-              src={project.thumbnail}
-              alt="Preview"
-              className="w-full h-full object-cover"
+      <div
+        className={`
+          ${view === "grid" ? "aspect-video" : "w-48 h-28"}
+          bg-gray-100 dark:bg-gray-800
+          ${view === "grid" ? "" : "rounded-lg"}
+          overflow-hidden
+          relative
+        `}
+      >
+        {project.preview ? (
+          <div className="w-full h-full overflow-hidden">
+            <iframe
+              srcDoc={project.preview}
+              title="preview"
+              sandbox="allow-scripts"
+              scrolling="no"
+              className="
+                w-full
+                h-[600px]
+                pointer-events-none
+                border-0
+              "
             />
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500 text-sm">
-              No preview
-            </div>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500 text-sm">
+            No preview
+          </div>
+        )}
+      </div>
+    )}
 
-      {/* ================= Content ================= */}
+      {/* CONTENT */}
       <div
         className={`
           ${view === "grid" ? "p-6" : ""}
@@ -103,7 +113,7 @@ function ProjectCard({ project, onOpen, onDelete, view = "grid" }) {
         )}
       </div>
 
-      {/* ================= Inline Delete (List & Detailed) ================= */}
+      {/* INLINE DELETE */}
       {(view === "list" || view === "detailed") && (
         <Trash2
           onClick={handleDelete}
