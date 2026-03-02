@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { PanelLeft } from "lucide-react";
 
@@ -8,6 +8,9 @@ import PreviewPanel from "../components/PreviewPanel";
 import HistorySidebar from "../components/HistorySidebar";
 
 function Builder() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const [prompt, setPrompt] = useState("");
   const [refinementPrompt, setRefinementPrompt] = useState("");
   const [data, setData] = useState(null);
@@ -24,15 +27,29 @@ function Builder() {
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
-  // Resizable panels state
-  const [codePanelWidth, setCodePanelWidth] = useState(50); // percentage
+  const [codePanelWidth, setCodePanelWidth] = useState(50);
   const isDragging = useRef(false);
   const containerRef = useRef(null);
   const startX = useRef(0);
   const startWidth = useRef(0);
 
-  const [searchParams] = useSearchParams();
   const projectIdFromURL = searchParams.get("project");
+
+  /* ===============================
+      NEW PROJECT HANDLER
+  =============================== */
+
+  const handleNewProject = () => {
+    navigate("/builder"); // remove query param
+
+    setData(null);
+    setIsGenerated(false);
+    setSelectedProjectId(null);
+    setPrompt("");
+    setRefinementPrompt("");
+    setActiveFile(null);
+    setActivePage(null);
+  };
 
   /* ===============================
       RESIZABLE PANEL LOGIC
@@ -48,10 +65,18 @@ function Builder() {
 
   const handleMouseMove = useCallback((e) => {
     if (!isDragging.current || !containerRef.current) return;
-    const containerWidth = containerRef.current.getBoundingClientRect().width;
+
+    const containerWidth =
+      containerRef.current.getBoundingClientRect().width;
+
     const delta = e.clientX - startX.current;
     const deltaPercent = (delta / containerWidth) * 100;
-    const newWidth = Math.min(Math.max(startWidth.current + deltaPercent, 20), 80);
+
+    const newWidth = Math.min(
+      Math.max(startWidth.current + deltaPercent, 20),
+      80
+    );
+
     setCodePanelWidth(newWidth);
   }, []);
 
@@ -64,6 +89,7 @@ function Builder() {
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
@@ -223,32 +249,21 @@ function Builder() {
   };
 
   return (
-    <div
-      className="
-        min-h-screen
-        bg-gradient-to-br
-        from-indigo-50 via-white to-purple-50
-        dark:from-gray-900 dark:via-gray-950 dark:to-black
-        transition-colors duration-300
-      "
-    >
-      <Navbar
-        onLogout={handleLogout}
-      />
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-black transition-colors duration-300">
+      <Navbar onLogout={handleLogout} />
 
       <div className="max-w-full mx-auto px-6 py-12">
-
         <div className="w-full flex flex-col lg:flex-row gap-0 items-stretch">
 
           {/* HISTORY SIDEBAR */}
           <div
             className={`bg-white dark:bg-gray-900
-              border border-gray-200 dark:border-gray-700
-              shadow-xl rounded-3xl p-4
-              h-[80vh] overflow-y-auto
-              transition-all duration-300
-              ${showHistory ? "w-64" : "w-16"}
-              flex-shrink-0 mr-6`}
+            border border-gray-200 dark:border-gray-700
+            shadow-xl rounded-3xl p-4
+            h-[80vh] overflow-y-auto
+            transition-all duration-300
+            ${showHistory ? "w-64" : "w-16"}
+            flex-shrink-0 mr-6`}
           >
             <div className="flex items-center justify-between mb-4">
               {showHistory && (
@@ -271,23 +286,26 @@ function Builder() {
                   setData(project);
                   setIsGenerated(true);
                   setSelectedProjectId(project._id);
+
+                  const firstFile = Object.keys(project.code?.files || {})[0];
+                  if (firstFile) setActiveFile(firstFile);
+
+                  const entry =
+                    project.pages?.find(p => p.entry) || project.pages?.[0];
+
+                  if (entry) setActivePage(entry.id);
                 }}
+                onNewProject={handleNewProject}
                 selectedId={selectedProjectId}
                 refreshKey={historyRefreshKey}
               />
             )}
           </div>
 
-          {/* RESIZABLE PANELS CONTAINER */}
-          <div
-            ref={containerRef}
-            className="flex flex-row flex-1 min-w-0 overflow-hidden"
-          >
-            {/* CODE PANEL */}
-            <div
-              style={{ width: `${codePanelWidth}%` }}
-              className="flex-shrink-0 min-w-0 h-full"
-            >
+          {/* PANELS */}
+          <div ref={containerRef} className="flex flex-row flex-1 min-w-0 overflow-hidden">
+
+            <div style={{ width: `${codePanelWidth}%` }} className="flex-shrink-0 min-w-0 h-full">
               <CodePanel
                 data={data}
                 prompt={prompt}
@@ -308,41 +326,20 @@ function Builder() {
               />
             </div>
 
-            {/* DRAG HANDLE */}
             <div
               onMouseDown={handleMouseDown}
-              className="
-                flex-shrink-0 w-2 mx-1
-                flex items-center justify-center
-                cursor-col-resize
-                group
-                relative
-                z-10
-              "
-              title="Drag to resize panels"
-            >
-              <div className="
-                w-1 h-16 rounded-full
-                bg-gray-300 dark:bg-gray-600
-                group-hover:bg-indigo-400 dark:group-hover:bg-indigo-500
-                group-active:bg-indigo-500
-                transition-colors duration-150
-              " />
-            </div>
+              className="flex-shrink-0 w-2 mx-1 cursor-col-resize relative z-10"
+            />
 
-            {/* PREVIEW PANEL */}
-            <div
-              style={{ width: `${100 - codePanelWidth}%` }}
-              className="flex-shrink-0 min-w-0 h-full"
-            >
+            <div style={{ width: `${100 - codePanelWidth}%` }} className="flex-shrink-0 min-w-0 h-full">
               <PreviewPanel
                 data={data}
                 activePage={activePage}
                 mobileView={mobileView}
               />
             </div>
-          </div>
 
+          </div>
         </div>
       </div>
     </div>
