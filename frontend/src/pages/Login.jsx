@@ -38,7 +38,7 @@ function Login() {
       }
 
       localStorage.setItem("token", data.token);
-      navigate("/builder");
+      navigate("/templates" );
       setIsLoading(false);
     } catch (err) {
       setError("Unable to connect to server. Please try again.");

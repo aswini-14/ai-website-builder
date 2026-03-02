@@ -29,7 +29,7 @@ function PreviewPanel({ data, mobileView }) {
             key={data?._id}
             title="preview"
             srcDoc={previewContent}
-            sandbox="allow-scripts allow-forms allow-same-origin"
+            sandbox="allow-scripts allow-forms"
             className="w-full h-full"
           />
         </div>
