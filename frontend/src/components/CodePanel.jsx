@@ -124,7 +124,7 @@ function CodePanel({
     <div
       className={`bg-white dark:bg-gray-900 
       border border-gray-200 dark:border-gray-700
-      w-full lg:w-1/2 flex flex-col 
+      w-full flex flex-col 
       rounded-3xl shadow-xl p-2 h-[80vh]
       transition-colors duration-300
       ${mobileView === "preview" ? "hidden lg:flex" : ""}`}

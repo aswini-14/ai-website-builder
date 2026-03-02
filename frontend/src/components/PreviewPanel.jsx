@@ -6,7 +6,7 @@ function PreviewPanel({ data, activePage, mobileView }) {
         border border-gray-200 dark:border-gray-700
         rounded-3xl shadow-xl p-6
         transition-colors duration-300
-        w-full lg:w-1/2 flex flex-col h-[80vh]
+        w-full flex flex-col h-[80vh]
         ${mobileView === "code" ? "hidden lg:flex" : ""}
       `}
     >

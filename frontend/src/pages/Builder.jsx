@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { PanelLeft } from "lucide-react";
 
 import Navbar from "../components/Navbar";
@@ -24,9 +24,51 @@ function Builder() {
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
+  // Resizable panels state
+  const [codePanelWidth, setCodePanelWidth] = useState(50); // percentage
+  const isDragging = useRef(false);
+  const containerRef = useRef(null);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
 
   const [searchParams] = useSearchParams();
   const projectIdFromURL = searchParams.get("project");
+
+  /* ===============================
+      RESIZABLE PANEL LOGIC
+  =============================== */
+
+  const handleMouseDown = useCallback((e) => {
+    isDragging.current = true;
+    startX.current = e.clientX;
+    startWidth.current = codePanelWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, [codePanelWidth]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging.current || !containerRef.current) return;
+    const containerWidth = containerRef.current.getBoundingClientRect().width;
+    const delta = e.clientX - startX.current;
+    const deltaPercent = (delta / containerWidth) * 100;
+    const newWidth = Math.min(Math.max(startWidth.current + deltaPercent, 20), 80);
+    setCodePanelWidth(newWidth);
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    isDragging.current = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
 
   /* ===============================
       LOAD PROJECT FROM URL
@@ -196,7 +238,7 @@ function Builder() {
 
       <div className="max-w-full mx-auto px-6 py-12">
 
-        <div className="w-full flex flex-col lg:flex-row gap-6">
+        <div className="w-full flex flex-col lg:flex-row gap-0 items-stretch">
 
           {/* HISTORY SIDEBAR */}
           <div
@@ -206,7 +248,7 @@ function Builder() {
               h-[80vh] overflow-y-auto
               transition-all duration-300
               ${showHistory ? "w-64" : "w-16"}
-              flex-shrink-0`}
+              flex-shrink-0 mr-6`}
           >
             <div className="flex items-center justify-between mb-4">
               {showHistory && (
@@ -236,30 +278,70 @@ function Builder() {
             )}
           </div>
 
-          <CodePanel
-            data={data}
-            prompt={prompt}
-            setPrompt={setPrompt}
-            refinementPrompt={refinementPrompt}
-            setRefinementPrompt={setRefinementPrompt}
-            isGenerated={isGenerated}
-            isLoading={isLoading}
-            isRefining={isRefining}
-            activeFile={activeFile}
-            setActiveFile={setActiveFile}
-            copiedFile={copiedFile}
-            handleCopy={handleCopy}
-            handleSubmit={handleSubmit}
-            handleRefine={handleRefine}
-            mobileView={mobileView}
-            selectedProjectId={selectedProjectId}
-          />
+          {/* RESIZABLE PANELS CONTAINER */}
+          <div
+            ref={containerRef}
+            className="flex flex-row flex-1 min-w-0 overflow-hidden"
+          >
+            {/* CODE PANEL */}
+            <div
+              style={{ width: `${codePanelWidth}%` }}
+              className="flex-shrink-0 min-w-0 h-full"
+            >
+              <CodePanel
+                data={data}
+                prompt={prompt}
+                setPrompt={setPrompt}
+                refinementPrompt={refinementPrompt}
+                setRefinementPrompt={setRefinementPrompt}
+                isGenerated={isGenerated}
+                isLoading={isLoading}
+                isRefining={isRefining}
+                activeFile={activeFile}
+                setActiveFile={setActiveFile}
+                copiedFile={copiedFile}
+                handleCopy={handleCopy}
+                handleSubmit={handleSubmit}
+                handleRefine={handleRefine}
+                mobileView={mobileView}
+                selectedProjectId={selectedProjectId}
+              />
+            </div>
 
-          <PreviewPanel
-            data={data}
-            activePage={activePage}
-            mobileView={mobileView}
-          />
+            {/* DRAG HANDLE */}
+            <div
+              onMouseDown={handleMouseDown}
+              className="
+                flex-shrink-0 w-2 mx-1
+                flex items-center justify-center
+                cursor-col-resize
+                group
+                relative
+                z-10
+              "
+              title="Drag to resize panels"
+            >
+              <div className="
+                w-1 h-16 rounded-full
+                bg-gray-300 dark:bg-gray-600
+                group-hover:bg-indigo-400 dark:group-hover:bg-indigo-500
+                group-active:bg-indigo-500
+                transition-colors duration-150
+              " />
+            </div>
+
+            {/* PREVIEW PANEL */}
+            <div
+              style={{ width: `${100 - codePanelWidth}%` }}
+              className="flex-shrink-0 min-w-0 h-full"
+            >
+              <PreviewPanel
+                data={data}
+                activePage={activePage}
+                mobileView={mobileView}
+              />
+            </div>
+          </div>
 
         </div>
       </div>
