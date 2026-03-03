@@ -6,7 +6,8 @@ import {
   MicOff
 } from "lucide-react";
 import { useState, useRef } from "react";
-
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 function CodePanel({
   data,
   prompt,
@@ -23,7 +24,7 @@ function CodePanel({
   handleSubmit,
   handleRefine,
   mobileView,
-  setMobileView, // ✅ added
+  setMobileView,
   selectedProjectId
 }) {
   const [isListeningGenerate, setIsListeningGenerate] = useState(false);
@@ -31,6 +32,11 @@ function CodePanel({
 
   const [isListeningRefine, setIsListeningRefine] = useState(false);
   const refineRecognitionRef = useRef(null);
+
+  // ✅ NEW STATES (ONLY ADDITION)
+  const [showExplainModal, setShowExplainModal] = useState(false);
+  const [explanation, setExplanation] = useState("");
+  const [isExplaining, setIsExplaining] = useState(false);
 
   const createRecognition = (onResult, setListeningState, ref) => {
     if (!("webkitSpeechRecognition" in window)) {
@@ -46,15 +52,12 @@ function CodePanel({
     recognition.lang = "en-IN";
 
     recognition.onstart = () => setListeningState(true);
-
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       onResult(transcript);
     };
-
     recognition.onerror = (event) =>
       console.error("Speech error:", event.error);
-
     recognition.onend = () => setListeningState(false);
 
     recognition.start();
@@ -121,6 +124,38 @@ function CodePanel({
     }
   };
 
+  // ✅ NEW FUNCTION (ONLY ADDITION)
+  const handleExplain = async () => {
+    if (!activeFile) return;
+
+    try {
+      setShowExplainModal(true);
+      setIsExplaining(true);
+
+      const token = localStorage.getItem("token");
+
+      const res = await fetch("http://localhost:5000/explain", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          fileName: activeFile,
+          fileContent: data.code.files[activeFile]
+        })
+      });
+
+      const result = await res.json();
+      setExplanation(result.explanation);
+    } catch (err) {
+      console.error(err);
+      setExplanation("Failed to generate explanation.");
+    } finally {
+      setIsExplaining(false);
+    }
+  };
+
   return (
     <div
       className={`bg-white dark:bg-gray-900 
@@ -131,7 +166,7 @@ function CodePanel({
       ${mobileView === "preview" ? "hidden lg:flex" : ""}`}
     >
 
-      {/* ✅ MOBILE TOGGLE (ONLY ADDITION) */}
+      {/* MOBILE TOGGLE */}
       <div className="flex lg:hidden justify-center gap-3 py-2">
         <button
           onClick={() => setMobileView("code")}
@@ -198,6 +233,7 @@ function CodePanel({
           <div className="relative flex-1 overflow-y-auto pr-2">
             {activeFile && (
               <>
+                {/* COPY BUTTON */}
                 <button
                   onClick={() =>
                     handleCopy(data.code.files[activeFile], activeFile)
@@ -205,6 +241,14 @@ function CodePanel({
                   className="absolute top-2 right-2 px-3 py-1 text-xs rounded-md bg-indigo-600 text-white"
                 >
                   {copiedFile === activeFile ? "Copied ✔" : "Copy"}
+                </button>
+
+                {/* ✅ EXPLAIN BUTTON ADDED */}
+                <button
+                  onClick={handleExplain}
+                  className="absolute top-2 right-24 px-3 py-1 text-xs rounded-md bg-green-600 text-white"
+                >
+                  Explain
                 </button>
 
                 <pre className="text-sm whitespace-pre-wrap break-words 
@@ -233,8 +277,7 @@ function CodePanel({
               bg-white dark:bg-gray-800
               text-gray-900 dark:text-gray-100
               border-2 border-gray-200 dark:border-gray-700
-              rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500
-              transition"
+              rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="Describe website + tech stack"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -247,7 +290,7 @@ function CodePanel({
                   ? stopGenerateListening
                   : startGenerateListening
               }
-              className={`absolute top-3 right-3 p-2 rounded-full transition ${
+              className={`absolute top-3 right-3 p-2 rounded-full ${
                 isListeningGenerate
                   ? "bg-red-500 text-white"
                   : "bg-indigo-600 text-white"
@@ -261,18 +304,12 @@ function CodePanel({
             </button>
           </div>
 
-          {isListeningGenerate && (
-            <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 animate-pulse">
-              Listening...
-            </div>
-          )}
-
           <div className="flex justify-end mt-4">
             <button
               onClick={handleSubmit}
               disabled={isLoading}
               className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 
-              text-white rounded-xl flex gap-2 items-center transition"
+              text-white rounded-xl flex gap-2 items-center"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin w-5 h-5" />
@@ -295,8 +332,7 @@ function CodePanel({
               bg-white dark:bg-gray-800
               text-gray-900 dark:text-gray-100
               border-2 border-gray-200 dark:border-gray-700
-              rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500
-              transition"
+              rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
               placeholder="Refine code (e.g., Change button color to orange)"
               value={refinementPrompt}
               onChange={(e) =>
@@ -311,7 +347,7 @@ function CodePanel({
                   ? stopRefineListening
                   : startRefineListening
               }
-              className={`absolute top-3 right-3 p-2 rounded-full transition ${
+              className={`absolute top-3 right-3 p-2 rounded-full ${
                 isListeningRefine
                   ? "bg-red-500 text-white"
                   : "bg-green-600 text-white"
@@ -325,24 +361,46 @@ function CodePanel({
             </button>
           </div>
 
-          {isListeningRefine && (
-            <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 animate-pulse">
-              Listening...
-            </div>
-          )}
-
           <div className="flex justify-end mt-3">
             <button
               onClick={handleRefine}
               disabled={isRefining}
               className="px-6 py-2 bg-green-600 hover:bg-green-700 
-              text-white rounded-xl transition"
+              text-white rounded-xl"
             >
               {isRefining ? "Refining..." : "Refine"}
             </button>
           </div>
         </div>
       )}
+
+      {/* ✅ EXPLAIN MODAL */}
+      {showExplainModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 w-[80%] max-w-3xl p-6 rounded-2xl shadow-xl overflow-y-auto max-h-[80vh]">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">AI Code Explanation</h2>
+              <button
+                onClick={() => setShowExplainModal(false)}
+                className="text-red-500 font-semibold"
+              >
+                Close
+              </button>
+            </div>
+
+            {isExplaining ? (
+              <p>Generating explanation...</p>
+            ) : (
+              <div className="prose dark:prose-invert max-w-none text-sm">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {explanation}
+                </ReactMarkdown>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
