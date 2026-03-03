@@ -8,7 +8,17 @@ const ProjectSchema = new mongoose.Schema(
     code: { type: Object },
     preview: { type: Object },
     pages: { type: Array },
-    thumbnail: {type: String}
+    thumbnail: { type: String },
+
+    // ✅ NEW FIELDS FOR DEPLOYMENT
+    deployed: {
+      type: Boolean,
+      default: false
+    },
+    deployedAt: {
+      type: Date
+    }
+
   },
   { timestamps: true }
 );
