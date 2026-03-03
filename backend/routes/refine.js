@@ -5,12 +5,25 @@ const Project = require("../models/Project");
 const authMiddleware = require("../middleware/authMiddleware");
 
 /* ===============================
-   CLEAN + SAFE PREVIEW BUILDER
+   IMPROVED PREVIEW BUILDER
 ================================= */
 function buildInlinePreview(files) {
-  const html = files["index.html"] || "";
-  const css = files["style.css"] || "";
-  const js = files["script.js"] || "";
+  if (!files["index.html"]) return null;
+
+  const html = files["index.html"];
+
+  // 🔥 Auto-detect CSS file (even in folders)
+  const cssFileKey = Object.keys(files).find(file =>
+    file.toLowerCase().endsWith(".css")
+  );
+
+  // 🔥 Auto-detect JS file (even in folders)
+  const jsFileKey = Object.keys(files).find(file =>
+    file.toLowerCase().endsWith(".js")
+  );
+
+  const css = cssFileKey ? files[cssFileKey] : "";
+  const js = jsFileKey ? files[jsFileKey] : "";
 
   const cleanedHTML = html
     .replace(/<!DOCTYPE[^>]*>/i, "")
@@ -55,8 +68,24 @@ console.error("Preview Script Error:", e);
 `;
 }
 
-function extractJSON(text) {
-  return text.replace(/```json|```/g, "").trim();
+/* ===============================
+   SAFE JSON PARSER
+================================= */
+function safeParseJSON(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    try {
+      const cleaned = text
+        .replace(/```json|```/g, "")
+        .replace(/\r?\n|\r/g, "")
+        .trim();
+      return JSON.parse(cleaned);
+    } catch (err) {
+      console.error("JSON PARSE ERROR:", err);
+      throw new Error("AI returned invalid JSON");
+    }
+  }
 }
 
 /* ===============================
@@ -102,8 +131,7 @@ Return ONLY valid JSON:
           }
         ],
         generationConfig: {
-          temperature: 0.1,
-          responseMimeType: "application/json"
+          temperature: 0.1
         }
       })
     });
@@ -113,7 +141,7 @@ Return ONLY valid JSON:
 
     if (!rawText) throw new Error("Empty AI response");
 
-    const parsed = JSON.parse(extractJSON(rawText));
+    const parsed = safeParseJSON(rawText);
 
     const updatedFiles = {
       ...files,
@@ -144,4 +172,4 @@ Return ONLY valid JSON:
   }
 });
 
-module.exports = router;  
+module.exports = router;

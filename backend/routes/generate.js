@@ -6,14 +6,25 @@ const authMiddleware = require("../middleware/authMiddleware");
 const formatAsTerminal = require("../utils/terminalFormatter");
 
 /* ===============================
-   SAFE STATIC PREVIEW BUILDER
+   IMPROVED STATIC PREVIEW BUILDER
 ================================= */
 function buildInlinePreview(files) {
-  const html = files["index.html"] || "";
-  const css = files["style.css"] || "";
-  const js = files["script.js"] || "";
+  if (!files["index.html"]) return null;
 
-  if (!html) return null;
+  const html = files["index.html"];
+
+  // 🔥 Auto-detect CSS file (even inside folders like css/style.css)
+  const cssFileKey = Object.keys(files).find(file =>
+    file.toLowerCase().endsWith(".css")
+  );
+
+  // 🔥 Auto-detect JS file (even inside folders like js/script.js)
+  const jsFileKey = Object.keys(files).find(file =>
+    file.toLowerCase().endsWith(".js")
+  );
+
+  const css = cssFileKey ? files[cssFileKey] : "";
+  const js = jsFileKey ? files[jsFileKey] : "";
 
   const cleanedHTML = html
     .replace(/<!DOCTYPE[^>]*>/i, "")
@@ -59,19 +70,27 @@ console.error("Preview Script Error:", e);
 }
 
 /* ===============================
-   SAFE JSON EXTRACTOR
+   SUPER SAFE JSON PARSER
 ================================= */
 function safeParseJSON(text) {
   try {
     return JSON.parse(text);
   } catch {
-    const cleaned = text.replace(/```json|```/g, "").trim();
-    return JSON.parse(cleaned);
+    try {
+      const cleaned = text
+        .replace(/```json|```/g, "")
+        .replace(/\r?\n|\r/g, "")
+        .trim();
+      return JSON.parse(cleaned);
+    } catch (err) {
+      console.error("JSON PARSE ERROR:", err);
+      throw new Error("AI returned invalid JSON");
+    }
   }
 }
 
 /* ===============================
-   UNIVERSAL GENERATE ROUTE
+   GENERATE ROUTE
 ================================= */
 router.post("/", authMiddleware, async (req, res) => {
   const { prompt } = req.body;
@@ -87,8 +106,7 @@ Generate a complete web application based on the user's requested tech stack.
 IMPORTANT RULES:
 - Detect stack automatically from prompt.
 - Use proper folder structure.
-- Include all necessary config files (package.json, requirements.txt, etc).
-- Include environment file template if needed.
+- Include all necessary config files.
 - Do NOT include explanations.
 - Do NOT include markdown.
 - Return ONLY valid JSON.
@@ -124,8 +142,7 @@ JSON FORMAT:
           }
         ],
         generationConfig: {
-          temperature: 0.2,
-          responseMimeType: "application/json"
+          temperature: 0.2
         }
       })
     });
@@ -136,85 +153,84 @@ JSON FORMAT:
     if (!rawText) throw new Error("Empty AI response");
 
     const result = safeParseJSON(rawText);
-
     const files = result?.code?.files || {};
 
     let preview = null;
 
-    // Static site preview support
+    // ✅ STATIC SITE PREVIEW
     if (files["index.html"]) {
       preview = buildInlinePreview(files);
     } else {
+      // ✅ Non-static stacks (React, Node, etc)
       preview = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-      <meta charset="UTF-8" />
-      <style>
-      body {
-        margin: 2px;
-        padding: 4px;
-        font-family: Inter, Arial, sans-serif;
-        background: linear-gradient(135deg, #0f172a, #1e293b);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-      }
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Inter, Arial, sans-serif;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
 
-      .container {
-        background: #111827;
-        padding: 40px;
-        border-radius: 20px;
-        width: 90%;
-        max-width: 800px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-      }
+.container {
+  background: #111827;
+  padding: 40px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 800px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
 
-      .badge {
-        display: inline-block;
-        padding: 6px 12px;
-        background: #6366f1;
-        border-radius: 999px;
-        font-size: 13px;
-        margin-bottom: 15px;
-      }
+.badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #6366f1;
+  border-radius: 999px;
+  font-size: 13px;
+  margin-bottom: 15px;
+}
 
-      .terminal {
-        background: #0f172a;
-        padding: 60px;
-        border-radius: 12px;
-        font-family: Consolas, monospace;
-        font-size: 14px;
-        line-height: 1.6;
-        overflow-x: auto;
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
-      }
-      </style>
-      </head>
+.terminal {
+  background: #0f172a;
+  padding: 20px;
+  border-radius: 12px;
+  font-family: Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+</style>
+</head>
 
-      <body>
-        <div class="container">
-          <h2>${result.project?.name || "Generated Project"}</h2>
+<body>
+  <div class="container">
+    <h2>${result.project?.name || "Generated Project"}</h2>
 
-          <div class="badge">
-            ${(result.project?.techStack || []).join(", ")}
-          </div>
+    <div class="badge">
+      ${(result.project?.techStack || []).join(", ")}
+    </div>
 
-          <h3>Run Instructions</h3>
+    <h3>Run Instructions</h3>
 
-          <div class="terminal">
-            ${formatAsTerminal(result.runInstructions)}
-          </div>
+    <div class="terminal">
+      ${formatAsTerminal(result.runInstructions || "Run locally")}
+    </div>
 
-          <p style="margin-top:20px;color:#9ca3af">
-            This stack requires local execution.
-          </p>
-        </div>
-      </body>
-      </html>
-      `;
+    <p style="margin-top:20px;color:#9ca3af">
+      This stack requires local execution.
+    </p>
+  </div>
+</body>
+</html>
+`;
     }
 
     const newProject = await Project.create({
