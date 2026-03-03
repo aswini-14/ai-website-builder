@@ -3,23 +3,24 @@ const router = express.Router();
 const fetch = require("node-fetch");
 const Project = require("../models/Project");
 const authMiddleware = require("../middleware/authMiddleware");
+const formatAsTerminal = require("../utils/terminalFormatter");
 
 /* ===============================
-   CLEAN + SAFE PREVIEW BUILDER
+   SAFE STATIC PREVIEW BUILDER
 ================================= */
 function buildInlinePreview(files) {
   const html = files["index.html"] || "";
   const css = files["style.css"] || "";
   const js = files["script.js"] || "";
 
+  if (!html) return null;
+
   const cleanedHTML = html
     .replace(/<!DOCTYPE[^>]*>/i, "")
     .replace(/<html[^>]*>|<\/html>/gi, "")
     .replace(/<head[^>]*>[\s\S]*?<\/head>/i, "")
     .replace(/<body[^>]*>|<\/body>/gi, "")
-    // remove external script tags
     .replace(/<script[^>]*src=["'][^"']+["'][^>]*><\/script>/gi, "")
-    // remove external css links
     .replace(/<link[^>]*href=["'][^"']+["'][^>]*>/gi, "");
 
   return `
@@ -57,51 +58,56 @@ console.error("Preview Script Error:", e);
 `;
 }
 
-function extractJSON(text) {
-  return text.replace(/```json|```/g, "").trim();
+/* ===============================
+   SAFE JSON EXTRACTOR
+================================= */
+function safeParseJSON(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const cleaned = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleaned);
+  }
 }
 
 /* ===============================
-   GENERATE ROUTE
+   UNIVERSAL GENERATE ROUTE
 ================================= */
 router.post("/", authMiddleware, async (req, res) => {
   const { prompt } = req.body;
 
   try {
-    const lowerPrompt = prompt.toLowerCase();
-    const wantsSPA =
-      lowerPrompt.includes("react") ||
-      lowerPrompt.includes("node") ||
-      lowerPrompt.includes("express") ||
-      lowerPrompt.includes("spa") ||
-      lowerPrompt.includes("single page");
-
-    const generationInstruction = wantsSPA
-      ? `
-Generate a SINGLE PAGE APPLICATION using:
-
-- Only HTML
-- CSS
-- JavaScript
-- One index.html
-- Dynamic show/hide section switching
-- No page reload
-- No href navigation
-
-DO NOT use React, Node, import/export, require, JSX, modules.
-`
-      : `
-Generate a STATIC website using:
-
-- HTML
-- CSS
-- JavaScript
-- Standard navigation
-
-DO NOT use React, Node, import/export, require, JSX, modules.
-`;
-
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+    const systemInstruction = `
+You are an expert full-stack web developer.
+
+Generate a complete web application based on the user's requested tech stack.
+
+IMPORTANT RULES:
+- Detect stack automatically from prompt.
+- Use proper folder structure.
+- Include all necessary config files (package.json, requirements.txt, etc).
+- Include environment file template if needed.
+- Do NOT include explanations.
+- Do NOT include markdown.
+- Return ONLY valid JSON.
+
+JSON FORMAT:
+
+{
+  "project": {
+    "name": "",
+    "techStack": []
+  },
+  "code": {
+    "files": {
+      "file/path.ext": "file content"
+    }
+  },
+  "runInstructions": ""
+}
+`;
 
     const response = await fetch(API_URL, {
       method: "POST",
@@ -112,31 +118,13 @@ DO NOT use React, Node, import/export, require, JSX, modules.
             role: "user",
             parts: [
               {
-                text: `
-${prompt}
-
-${generationInstruction}
-
-Return ONLY valid JSON:
-
-{
-  "project": { "name": "", "techStack": [] },
-  "pages": [],
-  "code": {
-    "files": {
-      "index.html": "",
-      "style.css": "",
-      "script.js": ""
-    }
-  }
-}
-`
+                text: `${prompt}\n\n${systemInstruction}`
               }
             ]
           }
         ],
         generationConfig: {
-          temperature: 0.1,
+          temperature: 0.2,
           responseMimeType: "application/json"
         }
       })
@@ -147,9 +135,87 @@ Return ONLY valid JSON:
 
     if (!rawText) throw new Error("Empty AI response");
 
-    const result = JSON.parse(extractJSON(rawText));
+    const result = safeParseJSON(rawText);
 
-    const preview = buildInlinePreview(result.code.files);
+    const files = result?.code?.files || {};
+
+    let preview = null;
+
+    // Static site preview support
+    if (files["index.html"]) {
+      preview = buildInlinePreview(files);
+    } else {
+      preview = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+      <meta charset="UTF-8" />
+      <style>
+      body {
+        margin: 2px;
+        padding: 4px;
+        font-family: Inter, Arial, sans-serif;
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+
+      .container {
+        background: #111827;
+        padding: 40px;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 800px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 6px 12px;
+        background: #6366f1;
+        border-radius: 999px;
+        font-size: 13px;
+        margin-bottom: 15px;
+      }
+
+      .terminal {
+        background: #0f172a;
+        padding: 60px;
+        border-radius: 12px;
+        font-family: Consolas, monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        overflow-x: auto;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+      }
+      </style>
+      </head>
+
+      <body>
+        <div class="container">
+          <h2>${result.project?.name || "Generated Project"}</h2>
+
+          <div class="badge">
+            ${(result.project?.techStack || []).join(", ")}
+          </div>
+
+          <h3>Run Instructions</h3>
+
+          <div class="terminal">
+            ${formatAsTerminal(result.runInstructions)}
+          </div>
+
+          <p style="margin-top:20px;color:#9ca3af">
+            This stack requires local execution.
+          </p>
+        </div>
+      </body>
+      </html>
+      `;
+    }
 
     const newProject = await Project.create({
       userId: req.user.id,
@@ -157,7 +223,8 @@ Return ONLY valid JSON:
       prompt,
       code: result.code,
       preview,
-      pages: result.pages
+      pages: [],
+      thumbnail: null
     });
 
     res.json(newProject);

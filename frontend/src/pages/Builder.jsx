@@ -274,7 +274,7 @@ function Builder() {
       <Navbar onLogout={handleLogout} />
 
       <div className="max-w-full mx-auto px-6 py-12">
-        <div className="w-full flex flex-col lg:flex-row gap-0 items-stretch">
+        <div className="w-full flex flex-col lg:flex-row gap-0 items-center">
 
           {/* HISTORY SIDEBAR */}
           <div
