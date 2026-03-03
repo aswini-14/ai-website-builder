@@ -28,6 +28,8 @@ function Builder() {
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   const [codePanelWidth, setCodePanelWidth] = useState(50);
+  const [viewMode, setViewMode] = useState("split"); 
+// "split" | "code" | "preview"
   const isDragging = useRef(false);
   const containerRef = useRef(null);
   const startX = useRef(0);
@@ -349,44 +351,112 @@ function Builder() {
                 )}
               </>
             ) : (
+              
+              
               /* DESKTOP VIEW */
-              <div className="flex flex-row flex-1 min-w-0 overflow-hidden">
+              <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
-                <div style={{ width: `${codePanelWidth}%` }} className="flex-shrink-0 min-w-0 h-full">
-                  <CodePanel
-                    data={data}
-                    prompt={prompt}
-                    setPrompt={setPrompt}
-                    refinementPrompt={refinementPrompt}
-                    setRefinementPrompt={setRefinementPrompt}
-                    isGenerated={isGenerated}
-                    isLoading={isLoading}
-                    isRefining={isRefining}
-                    activeFile={activeFile}
-                    setActiveFile={setActiveFile}
-                    copiedFile={copiedFile}
-                    handleCopy={handleCopy}
-                    handleSubmit={handleSubmit}
-                    handleRefine={handleRefine}
-                    mobileView={mobileView}
-                    selectedProjectId={selectedProjectId}
-                  />
+                {/* 🔥 VIEW MODE CONTROLS */}
+                <div className="flex justify-end gap-3 mb-4">
+                  <button
+                    onClick={() => setViewMode("split")}
+                    className={`px-4 py-2 rounded-lg text-sm transition ${
+                      viewMode === "split"
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    Split
+                  </button>
+
+                  <button
+                    onClick={() => setViewMode("code")}
+                    className={`px-4 py-2 rounded-lg text-sm transition ${
+                      viewMode === "code"
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    Code Full
+                  </button>
+
+                  <button
+                    onClick={() => setViewMode("preview")}
+                    className={`px-4 py-2 rounded-lg text-sm transition ${
+                      viewMode === "preview"
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    Preview Full
+                  </button>
                 </div>
 
-                <div
-                  onMouseDown={handleMouseDown}
-                  className="flex-shrink-0 w-2 mx-1 cursor-col-resize relative z-10"
-                />
+                <div className="flex flex-row flex-1 min-w-0 overflow-hidden">
 
-                <div style={{ width: `${100 - codePanelWidth}%` }} className="flex-shrink-0 min-w-0 h-full">
-                  <PreviewPanel
-                    key={selectedProjectId}
-                    data={data}
-                    mobileView={mobileView}
-                  />
+                  {/* CODE PANEL */}
+                  {(viewMode === "split" || viewMode === "code") && (
+                    <div
+                      style={
+                        viewMode === "split"
+                          ? { width: `${codePanelWidth}%` }
+                          : { width: "100%" }
+                      }
+                      className="flex-shrink-0 min-w-0 h-full"
+                    >
+                      <CodePanel
+                        data={data}
+                        prompt={prompt}
+                        setPrompt={setPrompt}
+                        refinementPrompt={refinementPrompt}
+                        setRefinementPrompt={setRefinementPrompt}
+                        isGenerated={isGenerated}
+                        isLoading={isLoading}
+                        isRefining={isRefining}
+                        activeFile={activeFile}
+                        setActiveFile={setActiveFile}
+                        copiedFile={copiedFile}
+                        handleCopy={handleCopy}
+                        handleSubmit={handleSubmit}
+                        handleRefine={handleRefine}
+                        mobileView={mobileView}
+                        selectedProjectId={selectedProjectId}
+                      />
+                    </div>
+                  )}
+
+                  {/* RESIZER (only in split mode) */}
+                  {viewMode === "split" && (
+                    <div
+                      onMouseDown={handleMouseDown}
+                      className="flex-shrink-0 w-2 mx-1 cursor-col-resize relative z-10"
+                    />
+                  )}
+
+                  {/* PREVIEW PANEL */}
+                  {(viewMode === "split" || viewMode === "preview") && (
+                    <div
+                      style={
+                        viewMode === "split"
+                          ? { width: `${100 - codePanelWidth}%` }
+                          : { width: "100%" }
+                      }
+                      className="flex-shrink-0 min-w-0 h-full"
+                    >
+                      <PreviewPanel
+                        key={selectedProjectId}
+                        data={data}
+                        mobileView={mobileView}
+                      />
+                    </div>
+                  )}
+
                 </div>
-
               </div>
+
+
+
+
             )}
           </div>
         </div>
