@@ -1,4 +1,4 @@
-function PreviewPanel({ data, mobileView }) {
+function PreviewPanel({ data, mobileView, setMobileView }) {
 
   // 🔥 SUPPORT BOTH STRING AND OBJECT
   const previewContent =
@@ -19,6 +19,32 @@ function PreviewPanel({ data, mobileView }) {
         ${mobileView === "code" ? "hidden lg:flex" : ""}
       `}
     >
+
+      {/* ✅ MOBILE TOGGLE (ADDED HERE) */}
+      <div className="flex lg:hidden justify-center gap-3 mb-4">
+        <button
+          onClick={() => setMobileView("code")}
+          className={`px-4 py-1 rounded-lg text-sm transition ${
+            mobileView === "code"
+              ? "bg-indigo-600 text-white"
+              : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+          }`}
+        >
+          Code
+        </button>
+
+        <button
+          onClick={() => setMobileView("preview")}
+          className={`px-4 py-1 rounded-lg text-sm transition ${
+            mobileView === "preview"
+              ? "bg-indigo-600 text-white"
+              : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+          }`}
+        >
+          Preview
+        </button>
+      </div>
+
       <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">
         Live Preview
       </h2>

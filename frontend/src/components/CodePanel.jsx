@@ -23,6 +23,7 @@ function CodePanel({
   handleSubmit,
   handleRefine,
   mobileView,
+  setMobileView, // ✅ added
   selectedProjectId
 }) {
   const [isListeningGenerate, setIsListeningGenerate] = useState(false);
@@ -129,11 +130,37 @@ function CodePanel({
       transition-colors duration-300
       ${mobileView === "preview" ? "hidden lg:flex" : ""}`}
     >
+
+      {/* ✅ MOBILE TOGGLE (ONLY ADDITION) */}
+      <div className="flex lg:hidden justify-center gap-3 py-2">
+        <button
+          onClick={() => setMobileView("code")}
+          className={`px-4 py-1 rounded-lg text-sm transition ${
+            mobileView === "code"
+              ? "bg-indigo-600 text-white"
+              : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+          }`}
+        >
+          Code
+        </button>
+
+        <button
+          onClick={() => setMobileView("preview")}
+          className={`px-4 py-1 rounded-lg text-sm transition ${
+            mobileView === "preview"
+              ? "bg-indigo-600 text-white"
+              : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+          }`}
+        >
+          Preview
+        </button>
+      </div>
+
       {/* TITLE */}
-      {isGenerated && (
+      {isGenerated &&(
         <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
-            {prompt}
+            {data?.prompt}
           </h2>
         </div>
       )}
@@ -152,7 +179,6 @@ function CodePanel({
             </button>
           </div>
 
-          {/* FILE TABS */}
           <div className="flex gap-2 mb-3 overflow-x-auto">
             {Object.keys(data.code.files).map((file) => (
               <button
@@ -169,7 +195,6 @@ function CodePanel({
             ))}
           </div>
 
-          {/* CODE VIEW */}
           <div className="relative flex-1 overflow-y-auto pr-2">
             {activeFile && (
               <>

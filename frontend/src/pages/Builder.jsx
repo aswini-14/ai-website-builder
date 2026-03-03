@@ -19,10 +19,11 @@ function Builder() {
   const [isGenerated, setIsGenerated] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const [mobileView, setMobileView] = useState("code");
+  const [isMobile, setIsMobile] = useState(window.innerWidth <1024);
   const [activeFile, setActiveFile] = useState(null);
   const [copiedFile, setCopiedFile] = useState(null);
   const [showHistory, setShowHistory] = useState(
-    window.innerWidth >= 1024
+    window.innerWidth >=1024
   );
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
@@ -32,6 +33,22 @@ function Builder() {
   const containerRef = useRef(null);
   const startX = useRef(0);
   const startWidth = useRef(0);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+
+      if (mobile) {
+        setShowHistory(false);
+      } else {
+        setShowHistory(true);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const projectIdFromURL = searchParams.get("project");
 
@@ -123,6 +140,7 @@ function Builder() {
         setData(project);
         setIsGenerated(true);
         setSelectedProjectId(project._id);
+        setPrompt(project.prompt || "");
 
         const firstFile = Object.keys(project.code?.files || {})[0];
         if (firstFile) setActiveFile(firstFile);
@@ -165,7 +183,10 @@ function Builder() {
 
       const result = await res.json();
 
-      setData(result);
+      setData({
+        ...result,
+        originalPrompt: prompt
+      });
       setIsGenerated(true);
       setSelectedProjectId(result._id);
       setHistoryRefreshKey(prev => prev + 1);
@@ -259,11 +280,10 @@ function Builder() {
           <div
             className={`bg-white dark:bg-gray-900
             border border-gray-200 dark:border-gray-700
-            shadow-xl rounded-3xl p-4
-            h-[80vh] overflow-y-auto
+            shadow-xl rounded-3xl
             transition-all duration-300
-            ${showHistory ? "w-64" : "w-16"}
-            flex-shrink-0 mr-6`}
+            ${showHistory ? "w-64 h-[80vh] overflow-y-auto p-4 mr-6" : "w-14 h-14 overflow-hidden p-2 mr-2"}
+            flex-shrink-0`}
           >
             <div className="flex items-center justify-between mb-4">
               {showHistory && (
@@ -303,42 +323,86 @@ function Builder() {
           </div>
 
           {/* PANELS */}
-          <div ref={containerRef} className="flex flex-row flex-1 min-w-0 overflow-hidden">
+          <div ref={containerRef} className="flex flex-1 min-w-0 overflow-hidden">
 
-            <div style={{ width: `${codePanelWidth}%` }} className="flex-shrink-0 min-w-0 h-full">
-              <CodePanel
-                data={data}
-                prompt={prompt}
-                setPrompt={setPrompt}
-                refinementPrompt={refinementPrompt}
-                setRefinementPrompt={setRefinementPrompt}
-                isGenerated={isGenerated}
-                isLoading={isLoading}
-                isRefining={isRefining}
-                activeFile={activeFile}
-                setActiveFile={setActiveFile}
-                copiedFile={copiedFile}
-                handleCopy={handleCopy}
-                handleSubmit={handleSubmit}
-                handleRefine={handleRefine}
-                mobileView={mobileView}
-                selectedProjectId={selectedProjectId}
-              />
-            </div>
+            {/* MOBILE VIEW */}
+            {isMobile ? (
+              <>
+                {mobileView === "code" && (
+                  <div className="w-full h-full">
+                    <CodePanel
+                      data={data}
+                      prompt={prompt}
+                      setPrompt={setPrompt}
+                      refinementPrompt={refinementPrompt}
+                      setRefinementPrompt={setRefinementPrompt}
+                      isGenerated={isGenerated}
+                      isLoading={isLoading}
+                      isRefining={isRefining}
+                      activeFile={activeFile}
+                      setActiveFile={setActiveFile}
+                      copiedFile={copiedFile}
+                      handleCopy={handleCopy}
+                      handleSubmit={handleSubmit}
+                      handleRefine={handleRefine}
+                      mobileView={mobileView}
+                      setMobileView={setMobileView}
+                      selectedProjectId={selectedProjectId}
+                    />
+                  </div>
+                )}
 
-            <div
-              onMouseDown={handleMouseDown}
-              className="flex-shrink-0 w-2 mx-1 cursor-col-resize relative z-10"
-            />
+                {mobileView === "preview" && (
+                  <div className="w-full h-full">
+                    <PreviewPanel
+                      key={selectedProjectId}
+                      data={data}
+                      mobileView={mobileView}
+                      setMobileView={setMobileView}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              /* DESKTOP VIEW */
+              <div className="flex flex-row flex-1 min-w-0 overflow-hidden">
 
-            <div style={{ width: `${100 - codePanelWidth}%` }} className="flex-shrink-0 min-w-0 h-full">
-              <PreviewPanel
-                key={selectedProjectId}
-                data={data}
-                mobileView={mobileView}
-              />
-            </div>
+                <div style={{ width: `${codePanelWidth}%` }} className="flex-shrink-0 min-w-0 h-full">
+                  <CodePanel
+                    data={data}
+                    prompt={prompt}
+                    setPrompt={setPrompt}
+                    refinementPrompt={refinementPrompt}
+                    setRefinementPrompt={setRefinementPrompt}
+                    isGenerated={isGenerated}
+                    isLoading={isLoading}
+                    isRefining={isRefining}
+                    activeFile={activeFile}
+                    setActiveFile={setActiveFile}
+                    copiedFile={copiedFile}
+                    handleCopy={handleCopy}
+                    handleSubmit={handleSubmit}
+                    handleRefine={handleRefine}
+                    mobileView={mobileView}
+                    selectedProjectId={selectedProjectId}
+                  />
+                </div>
 
+                <div
+                  onMouseDown={handleMouseDown}
+                  className="flex-shrink-0 w-2 mx-1 cursor-col-resize relative z-10"
+                />
+
+                <div style={{ width: `${100 - codePanelWidth}%` }} className="flex-shrink-0 min-w-0 h-full">
+                  <PreviewPanel
+                    key={selectedProjectId}
+                    data={data}
+                    mobileView={mobileView}
+                  />
+                </div>
+
+              </div>
+            )}
           </div>
         </div>
       </div>
