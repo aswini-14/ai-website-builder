@@ -99,33 +99,49 @@ router.post("/", authMiddleware, async (req, res) => {
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
     const systemInstruction = `
-You are an expert full-stack web developer.
+        You are an expert web developer.
 
-Generate a complete web application based on the user's requested tech stack.
+        IMPORTANT STACK RULES:
 
-IMPORTANT RULES:
-- Detect stack automatically from prompt.
-- Use proper folder structure.
-- Include all necessary config files.
-- Do NOT include explanations.
-- Do NOT include markdown.
-- Return ONLY valid JSON.
+        1. If the user DOES NOT explicitly mention a framework or backend,
+          you MUST generate a plain static website using:
+          - HTML
+          - CSS
+          - Vanilla JavaScript
 
-JSON FORMAT:
+        2. ONLY use React, Node, Express, Next.js, etc
+          IF the user explicitly asks for them.
 
-{
-  "project": {
-    "name": "",
-    "techStack": []
-  },
-  "code": {
-    "files": {
-      "file/path.ext": "file content"
-    }
-  },
-  "runInstructions": ""
-}
-`;
+        3. Default stack is ALWAYS:
+          HTML + CSS + JavaScript
+
+        4. For static websites:
+          - Use simple file structure:
+              index.html
+              style.css
+              script.js
+
+        5. Do NOT assume modern frameworks unless mentioned.
+
+        Return ONLY valid JSON.
+        Do NOT include markdown.
+        Do NOT include explanations.
+
+        JSON FORMAT:
+
+        {
+          "project": {
+            "name": "",
+            "techStack": []
+          },
+          "code": {
+            "files": {
+              "file/path.ext": "file content"
+            }
+          },
+          "runInstructions": ""
+        }
+        `;
 
     const response = await fetch(API_URL, {
       method: "POST",
