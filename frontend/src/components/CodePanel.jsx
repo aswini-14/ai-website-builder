@@ -166,7 +166,7 @@ function CodePanel({
       )}
 
       {/* CODE SECTION */}
-      {data?.code ? (
+      {data?.code?.files ?(
         <div className="flex flex-col flex-1 overflow-hidden px-4 py-2 text-gray-900 dark:text-gray-100">
           <div className="w-full flex items-center justify-between">
             <h2 className="text-xl mb-3">Generated Code</h2>

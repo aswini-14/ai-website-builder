@@ -28,7 +28,7 @@ router.get("/", authMiddleware, async (req, res) => {
       .skip(skip)
       .limit(limit)
       // 🔥 ADD preview HERE
-      .select("_id title prompt preview createdAt updatedAt");
+      .select("_id title prompt preview code createdAt updatedAt");
 
     res.json({
       projects,

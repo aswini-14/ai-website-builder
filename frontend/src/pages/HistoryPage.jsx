@@ -12,6 +12,9 @@ function HistoryPage() {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const navigate = useNavigate();
 
   /* ================= Fetch History ================= */
@@ -21,22 +24,32 @@ function HistoryPage() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://localhost:5000/history?search=${searchQuery}`,
+        `http://localhost:5000/history?page=${page}&limit=7&search=${searchQuery}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
 
+      if (!res.ok) throw new Error("Failed to fetch history");
+
       const result = await res.json();
+
       setHistory(result.projects || []);
+      setTotalPages(result.totalPages || 1);
     } catch (err) {
-      console.error("Failed to fetch history");
+      console.error("Failed to fetch history:", err);
     }
-  }, [searchQuery]);
+  }, [page, searchQuery]);
 
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
+
+  /* ================= Reset Page When Search Changes ================= */
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   /* ================= Handlers ================= */
 
@@ -45,14 +58,18 @@ function HistoryPage() {
   };
 
   const handleDelete = async (id) => {
-    const token = localStorage.getItem("token");
+    try {
+      const token = localStorage.getItem("token");
 
-    await fetch(`http://localhost:5000/history/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` }
-    });
+      await fetch(`http://localhost:5000/history/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-    fetchHistory();
+      fetchHistory();
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
   };
 
   /* ================= Layout Modes ================= */
@@ -125,6 +142,31 @@ function HistoryPage() {
               view={viewMode}
             />
           ))}
+
+        </div>
+
+        {/* ================= Pagination Controls ================= */}
+        <div className="flex justify-center items-center gap-6 mt-12">
+
+          <button
+            disabled={page === 1}
+            onClick={() => setPage(prev => prev - 1)}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            Previous
+          </button>
+
+          <span className="text-gray-600 dark:text-gray-300">
+            Page {page} of {totalPages}
+          </span>
+
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage(prev => prev + 1)}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            Next
+          </button>
 
         </div>
 

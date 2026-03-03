@@ -14,7 +14,6 @@ function Builder() {
   const [prompt, setPrompt] = useState("");
   const [refinementPrompt, setRefinementPrompt] = useState("");
   const [data, setData] = useState(null);
-  const [activePage, setActivePage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerated, setIsGenerated] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
@@ -65,7 +64,6 @@ function Builder() {
     setPrompt("");
     setRefinementPrompt("");
     setActiveFile(null);
-    setActivePage(null);
   };
 
   /* ===============================
@@ -145,10 +143,6 @@ function Builder() {
         const firstFile = Object.keys(project.code?.files || {})[0];
         if (firstFile) setActiveFile(firstFile);
 
-        const entry =
-          project.pages?.find(p => p.entry) || project.pages?.[0];
-
-        if (entry) setActivePage(entry.id);
 
       } catch (err) {
         console.error("Project load failed:", err);
@@ -194,10 +188,6 @@ function Builder() {
       const firstFile = Object.keys(result.code?.files || {})[0];
       if (firstFile) setActiveFile(firstFile);
 
-      const entry =
-        result.pages?.find(p => p.entry) || result.pages?.[0];
-
-      if (entry) setActivePage(entry.id);
 
     } catch (err) {
       console.error(err);
@@ -274,7 +264,7 @@ function Builder() {
       <Navbar onLogout={handleLogout} />
 
       <div className="max-w-full mx-auto px-6 py-12">
-        <div className="w-full flex flex-col lg:flex-row gap-0 items-center">
+        <div className="w-full flex flex-col lg:flex-row gap-0 items-start">
 
           {/* HISTORY SIDEBAR */}
           <div
@@ -282,7 +272,7 @@ function Builder() {
             border border-gray-200 dark:border-gray-700
             shadow-xl rounded-3xl
             transition-all duration-300
-            ${showHistory ? "w-64 h-[80vh] overflow-y-auto p-4 mr-6" : "w-14 h-14 overflow-hidden p-2 mr-2"}
+            ${showHistory ? "w-64 h-[80vh] overflow-y-auto scrollbar-hidden p-4 mr-6" : "w-14 h-14 overflow-hidden p-2 mr-2"}
             flex-shrink-0`}
           >
             <div className="flex items-center justify-between mb-4">
@@ -309,11 +299,6 @@ function Builder() {
 
                   const firstFile = Object.keys(project.code?.files || {})[0];
                   if (firstFile) setActiveFile(firstFile);
-
-                  const entry =
-                    project.pages?.find(p => p.entry) || project.pages?.[0];
-
-                  if (entry) setActivePage(entry.id);
                 }}
                 onNewProject={handleNewProject}
                 selectedId={selectedProjectId}

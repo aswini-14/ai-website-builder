@@ -22,3 +22,13 @@ code {
               color 0.3s ease,
               border-color 0.3s ease;
 }
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;  /* IE + Edge */
+  scrollbar-width: none;     /* Firefox */
+}
