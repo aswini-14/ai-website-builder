@@ -5,6 +5,7 @@ const Project = require("../models/Project");
 const authMiddleware = require("../middleware/authMiddleware");
 const formatAsTerminal = require("../utils/terminalFormatter");
 const { buildStaticPreview, buildRuntimePreview } = require("../utils/previewBuilder");
+const { extractLayout } = require("../utils/figmaParser");
 
 
 /* ===============================
@@ -31,7 +32,7 @@ function safeParseJSON(text) {
    GENERATE ROUTE
 ================================= */
 router.post("/", authMiddleware, async (req, res) => {
-  const { prompt } = req.body;
+  const { prompt = "", figmaUrl = "" } = req.body;
 
   try {
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
@@ -81,6 +82,36 @@ router.post("/", authMiddleware, async (req, res) => {
         }
         `;
 
+    let figmaData = null;
+    if (figmaUrl) {
+
+      let fileKey = null;
+
+if (figmaUrl.includes("/file/")) {
+  fileKey = figmaUrl.split("/file/")[1].split("/")[0];
+} else if (figmaUrl.includes("/design/")) {
+  fileKey = figmaUrl.split("/design/")[1].split("/")[0];
+}
+
+      const figmaResponse = await fetch(
+  `https://api.figma.com/v1/files/${fileKey}`,
+  {
+    headers: {
+      "X-Figma-Token": process.env.FIGMA_API_KEY
+    }
+  }
+);
+
+const figmaJson = await figmaResponse.json();
+
+if (figmaJson && figmaJson.document) {
+const layout = extractLayout(figmaJson);
+figmaData = JSON.stringify(layout);
+} else {
+  console.error("Invalid Figma response:", figmaJson);
+}
+    }
+
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -90,7 +121,20 @@ router.post("/", authMiddleware, async (req, res) => {
             role: "user",
             parts: [
               {
-                text: `${prompt}\n\n${systemInstruction}`
+                text: `
+Convert this Figma layout into a responsive website.
+
+Layout Structure:
+${figmaData}
+
+Rules:
+- Use semantic HTML
+- Use CSS Flexbox/Grid
+- Make it responsive
+- Generate index.html, style.css, script.js
+
+${systemInstruction}
+`
               }
             ]
           }

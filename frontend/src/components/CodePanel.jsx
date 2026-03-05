@@ -3,9 +3,10 @@ import {
   Loader2,
   Download,
   Mic,
-  MicOff
+  MicOff,
+  Plus
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 function CodePanel({
@@ -27,6 +28,12 @@ function CodePanel({
   setMobileView,
   selectedProjectId
 }) {
+
+  useEffect(() => {
+    setFigmaUrl("");
+    setShowFigmaInput(false);
+    setShowAttachMenu(false);
+  }, [selectedProjectId]);
   const [isListeningGenerate, setIsListeningGenerate] = useState(false);
   const generateRecognitionRef = useRef(null);
 
@@ -37,6 +44,9 @@ function CodePanel({
   const [showExplainModal, setShowExplainModal] = useState(false);
   const [explanation, setExplanation] = useState("");
   const [isExplaining, setIsExplaining] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showFigmaInput, setShowFigmaInput] = useState(false);
+  const [figmaUrl, setFigmaUrl] = useState("");
 
   const createRecognition = (onResult, setListeningState, ref) => {
     if (!("webkitSpeechRecognition" in window)) {
@@ -270,43 +280,96 @@ function CodePanel({
       {/* GENERATE SECTION */}
       {!isGenerated && (
         <div className="px-6 py-4 shrink-0 border-t border-gray-200 dark:border-gray-700">
-          <div className="relative">
-            <textarea
-              rows="4"
-              className="w-full px-4 py-3 pr-14 
-              bg-white dark:bg-gray-800
-              text-gray-900 dark:text-gray-100
-              border-2 border-gray-200 dark:border-gray-700
-              rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Describe website + tech stack"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-            />
+          
+          <div className="flex items-start gap-3 w-full">
 
-            <button
-              type="button"
-              onClick={
-                isListeningGenerate
-                  ? stopGenerateListening
-                  : startGenerateListening
-              }
-              className={`absolute top-3 right-3 p-2 rounded-full ${
-                isListeningGenerate
-                  ? "bg-red-500 text-white"
-                  : "bg-indigo-600 text-white"
-              }`}
-            >
-              {isListeningGenerate ? (
-                <MicOff className="w-4 h-4" />
-              ) : (
-                <Mic className="w-4 h-4" />
+            {!showFigmaInput && (
+              <button
+                onClick={() => setShowAttachMenu(!showAttachMenu)}
+                className="mt-2 p-2 rounded-full bg-gray-200 dark:bg-gray-700 
+                hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
+
+            <div className="relative flex-1">
+              <textarea
+                rows="4"
+                className="w-full px-4 py-3 pr-14 
+                bg-white dark:bg-gray-800
+                text-gray-900 dark:text-gray-100
+                border-2 border-gray-200 dark:border-gray-700
+                rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Describe website + tech stack"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+              />
+              {showAttachMenu && (
+                <div className="absolute left-0 bottom-full mb-2 bg-white dark:bg-gray-800 border rounded-lg p-2 w-48 shadow-lg z-10">
+
+                  <button
+                    onClick={() => {
+                      setShowFigmaInput(true);
+                      setShowAttachMenu(false);
+                    }}
+                    className="block w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                  >
+                    Attach Figma Design
+                  </button>
+
+                </div>
               )}
-            </button>
+
+              {showFigmaInput && (
+                <div className="mt-3 flex gap-2">
+
+                  <input
+                    type="text"
+                    placeholder="Paste Figma design link..."
+                    value={figmaUrl}
+                    onChange={(e) => setFigmaUrl(e.target.value)}
+                    className="flex-1 px-4 py-2 border rounded-lg bg-white dark:bg-gray-800"
+                  />
+
+                  <button
+                    onClick={() => {
+                      setShowFigmaInput(false);
+                      setFigmaUrl("");
+                    }}
+                    className="px-3 py-2 bg-red-500 text-white rounded-lg"
+                  >
+                    Remove
+                  </button>
+
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={
+                  isListeningGenerate
+                    ? stopGenerateListening
+                    : startGenerateListening
+                }
+                className={`absolute top-3 right-3 p-2 rounded-full ${
+                  isListeningGenerate
+                    ? "bg-red-500 text-white"
+                    : "bg-indigo-600 text-white"
+                }`}
+              >
+                {isListeningGenerate ? (
+                  <MicOff className="w-4 h-4" />
+                ) : (
+                  <Mic className="w-4 h-4" />
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="flex justify-end mt-4">
             <button
-              onClick={handleSubmit}
+              onClick={() => handleSubmit(figmaUrl)}
               disabled={isLoading}
               className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 
               text-white rounded-xl flex gap-2 items-center"

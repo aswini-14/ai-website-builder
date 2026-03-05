@@ -158,8 +158,8 @@ function Builder() {
       GENERATE PROJECT
   =============================== */
 
-  const handleSubmit = async () => {
-    if (!prompt.trim()) return;
+  const handleSubmit = async (figmaUrl = "") => {
+    if (!prompt.trim()  && !figmaUrl) return;
 
     setIsLoading(true);
 
@@ -172,7 +172,7 @@ function Builder() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt , figmaUrl})
       });
 
       if (!res.ok) throw new Error("Generate failed");
