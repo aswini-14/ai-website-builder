@@ -3,20 +3,34 @@ import { Rocket, Loader2 } from "lucide-react";
 
 function PreviewPanel({ data, mobileView, setMobileView }) {
 
-  // 🔥 SUPPORT BOTH STRING AND OBJECT
-  const previewContent =
-    typeof data?.preview === "string"
-      ? data.preview
-      : typeof data?.preview === "object"
-        ? Object.values(data.preview)[0]
-        : null;
+  /* ==============================
+     SAFE PREVIEW EXTRACTION
+  ============================== */
 
-  // 🚀 DEPLOY STATES (NEW ADDITION)
+  let previewContent = null;
+
+  if (typeof data?.preview === "string") {
+    previewContent = data.preview;
+  } 
+  else if (data?.preview && typeof data.preview === "object") {
+    const values = Object.values(data.preview || {});
+    previewContent = values.length ? values[0] : null;
+  }
+
+
+  /* ==============================
+     DEPLOY STATES
+  ============================== */
+
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployUrl, setDeployUrl] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // 🚀 DEPLOY FUNCTION (NEW ADDITION)
+
+  /* ==============================
+     DEPLOY FUNCTION
+  ============================== */
+
   const handleDeploy = async () => {
     if (!data?._id) return;
 
@@ -49,6 +63,7 @@ function PreviewPanel({ data, mobileView, setMobileView }) {
     }
   };
 
+
   return (
     <div
       className={`
@@ -61,7 +76,10 @@ function PreviewPanel({ data, mobileView, setMobileView }) {
       `}
     >
 
-      {/* ✅ MOBILE TOGGLE */}
+      {/* ==============================
+         MOBILE VIEW TOGGLE
+      ============================== */}
+
       <div className="flex lg:hidden justify-center gap-3 mb-4">
         <button
           onClick={() => setMobileView("code")}
@@ -86,8 +104,13 @@ function PreviewPanel({ data, mobileView, setMobileView }) {
         </button>
       </div>
 
-      {/* 🔥 HEADER WITH DEPLOY BUTTON */}
+
+      {/* ==============================
+         HEADER + DEPLOY BUTTON
+      ============================== */}
+
       <div className="flex items-center justify-between mb-4">
+
         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
           Live Preview
         </h2>
@@ -111,36 +134,43 @@ function PreviewPanel({ data, mobileView, setMobileView }) {
             )}
           </button>
         )}
+
       </div>
 
-      {/* 🚀 DEPLOY SUCCESS SECTION */}
+
+      {/* ==============================
+         DEPLOY SUCCESS MESSAGE
+      ============================== */}
+
       {deployUrl && (
         <div className="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 p-4 rounded-xl">
+
           <p className="text-sm text-green-700 dark:text-green-400 mb-2">
             🎉 Site deployed successfully!
           </p>
 
           <div className="flex items-center gap-2">
+
             <input
               value={deployUrl}
               readOnly
               className="flex-1 px-3 py-2 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
             />
 
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(deployUrl);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1500);
-                  }}
-                  className={`px-3 py-2 rounded-lg text-sm transition ${
-                    copied
-                      ? "bg-green-600 text-white"
-                      : "bg-indigo-600 text-white"
-                  }`}
-                >
-                  {copied ? "Copied ✓" : "Copy"}
-                </button>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(deployUrl);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
+              className={`px-3 py-2 rounded-lg text-sm transition ${
+                copied
+                  ? "bg-green-600 text-white"
+                  : "bg-indigo-600 text-white"
+              }`}
+            >
+              {copied ? "Copied ✓" : "Copy"}
+            </button>
 
             <button
               onClick={() => window.open(deployUrl, "_blank")}
@@ -148,25 +178,39 @@ function PreviewPanel({ data, mobileView, setMobileView }) {
             >
               Open
             </button>
+
           </div>
+
         </div>
       )}
 
+
+      {/* ==============================
+         PREVIEW IFRAME
+      ============================== */}
+
       {previewContent ? (
+
         <div className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+
           <iframe
             key={data?._id}
             title="preview"
             srcDoc={previewContent}
-            sandbox="allow-scripts allow-forms"
+            sandbox="allow-scripts allow-forms allow-modals"
             className="w-full h-full"
           />
+
         </div>
+
       ) : (
+
         <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500">
           No preview available
         </div>
+
       )}
+
     </div>
   );
 }

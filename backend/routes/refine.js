@@ -1,175 +1,292 @@
 const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch");
+
 const Project = require("../models/Project");
 const authMiddleware = require("../middleware/authMiddleware");
 
+const formatAsTerminal = require("../utils/terminalFormatter");
+const { buildStaticPreview, buildRuntimePreview } = require("../utils/previewBuilder");
+
+
+
+
+function isStaticProject(files){
+
+  if(!files) return false;
+
+  return Object.keys(files)
+  .some(f => f.toLowerCase().endsWith(".html"));
+
+}
+
+
 /* ===============================
-   IMPROVED PREVIEW BUILDER
+   STACK DETECTOR
 ================================= */
-function buildInlinePreview(files) {
-  if (!files["index.html"]) return null;
 
-  const html = files["index.html"];
+function isStackChange(prompt){
 
-  // 🔥 Auto-detect CSS file (even in folders)
-  const cssFileKey = Object.keys(files).find(file =>
-    file.toLowerCase().endsWith(".css")
-  );
+const text = prompt.toLowerCase();
 
-  // 🔥 Auto-detect JS file (even in folders)
-  const jsFileKey = Object.keys(files).find(file =>
-    file.toLowerCase().endsWith(".js")
-  );
+return (
+text.includes("mern") ||
+text.includes("mean") ||
+text.includes("react") ||
+text.includes("next") ||
+text.includes("node") ||
+text.includes("express") ||
+text.includes("backend") ||
+text.includes("flask") ||
+text.includes("django") ||
+text.includes("python")
+);
 
-  const css = cssFileKey ? files[cssFileKey] : "";
-  const js = jsFileKey ? files[jsFileKey] : "";
-
-  const cleanedHTML = html
-    .replace(/<!DOCTYPE[^>]*>/i, "")
-    .replace(/<html[^>]*>|<\/html>/gi, "")
-    .replace(/<head[^>]*>[\s\S]*?<\/head>/i, "")
-    .replace(/<body[^>]*>|<\/body>/gi, "")
-    .replace(/<script[^>]*src=["'][^"']+["'][^>]*><\/script>/gi, "")
-    .replace(/<link[^>]*href=["'][^"']+["'][^>]*>/gi, "");
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
-<style>
-${css}
-</style>
-</head>
-<body>
-
-<script>
-document.addEventListener("click", function(e) {
-  const link = e.target.closest("a");
-  if (link && link.getAttribute("href")) {
-    e.preventDefault();
-  }
-});
-</script>
-
-${cleanedHTML}
-
-<script>
-try {
-${js}
-} catch(e) {
-console.error("Preview Script Error:", e);
 }
-</script>
 
-</body>
-</html>
-`;
-}
 
 /* ===============================
    SAFE JSON PARSER
 ================================= */
-function safeParseJSON(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    try {
-      const cleaned = text
-        .replace(/```json|```/g, "")
-        .replace(/\r?\n|\r/g, "")
-        .trim();
-      return JSON.parse(cleaned);
-    } catch (err) {
-      console.error("JSON PARSE ERROR:", err);
-      throw new Error("AI returned invalid JSON");
-    }
-  }
+
+function safeParseJSON(text){
+
+try{
+return JSON.parse(text);
+}catch{}
+
+try{
+
+const cleaned = text
+.replace(/```json/g,"")
+.replace(/```/g,"")
+.trim();
+
+return JSON.parse(cleaned);
+
+}catch{}
+
+try{
+
+const match = text.match(/\{[\s\S]*\}/);
+
+if(match)
+return JSON.parse(match[0]);
+
+}catch{}
+
+throw new Error("AI returned invalid JSON");
+
 }
+
 
 /* ===============================
    REFINE ROUTE
 ================================= */
-router.post("/", authMiddleware, async (req, res) => {
-  const { files, refinementPrompt, projectId } = req.body;
 
-  try {
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+router.post("/", authMiddleware, async (req,res)=>{
 
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: `
-You are modifying a browser-compatible website.
+const { files, refinementPrompt, projectId } = req.body;
+
+try{
+
+const stackChange = isStackChange(refinementPrompt);
+
+
+/* ===============================
+   AI PROMPT
+================================= */
+
+const instruction = stackChange
+? `
+Convert the project to the requested tech stack.
+
+IMPORTANT:
+Return the COMPLETE project.
 
 CURRENT FILES:
-${JSON.stringify(files)}
+${JSON.stringify(files).slice(0,10000)}
 
 USER REQUEST:
 ${refinementPrompt}
 
-Keep everything compatible with plain HTML, CSS, JS.
-Do NOT use React, Node, import/export, modules.
-
-Return ONLY valid JSON:
+Return ONLY JSON:
 
 {
-  "modifiedFiles": {
-    "filename": "updated content"
-  }
+  "project":{
+    "name":"",
+    "techStack":[]
+  },
+  "files":{
+    "file/path.ext":"file content"
+  },
+  "runInstructions":""
 }
 `
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.1
-        }
-      })
-    });
+: `
+Modify the following project.
 
-    const raw = await response.json();
-    const rawText = raw?.candidates?.[0]?.content?.parts?.[0]?.text;
+CURRENT FILES:
+${JSON.stringify(files).slice(0,10000)}
 
-    if (!rawText) throw new Error("Empty AI response");
+USER REQUEST:
+${refinementPrompt}
 
-    const parsed = safeParseJSON(rawText);
+Return ONLY JSON:
 
-    const updatedFiles = {
-      ...files,
-      ...parsed.modifiedFiles
-    };
+{
+"modifiedFiles":{
+"file/path.ext":"file content"
+}
+}
+`;
 
-    const preview = buildInlinePreview(updatedFiles);
 
-    const updatedProject = await Project.findOneAndUpdate(
-      { _id: projectId, userId: req.user.id },
-      {
-        code: { files: updatedFiles },
-        preview,
-        updatedAt: Date.now()
-      },
-      { new: true }
-    );
+/* ===============================
+   GEMINI API
+================================= */
 
-    res.json({
-      modifiedFiles: parsed.modifiedFiles,
-      preview,
-      project: updatedProject
-    });
+const API_URL =
+`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
-  } catch (err) {
-    console.error("REFINE ERROR:", err);
-    res.status(500).json({ error: err.message });
-  }
+const response = await fetch(API_URL,{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({
+
+contents:[
+{
+role:"user",
+parts:[
+{
+text:instruction
+}
+]
+}
+],
+
+generationConfig:{
+temperature:0.2
+}
+
+})
 });
+
+
+const raw = await response.json();
+
+
+/* ===============================
+   SAFE TEXT EXTRACTION
+================================= */
+
+let rawText = "";
+
+if(raw?.candidates?.length){
+
+rawText = raw.candidates[0].content.parts
+.map(p => p.text || "")
+.join("");
+
+}
+
+if(!rawText){
+
+console.error("FULL GEMINI RESPONSE:",raw);
+throw new Error("Empty AI response");
+
+}
+
+
+/* ===============================
+   PARSE AI RESPONSE
+================================= */
+
+const parsed = safeParseJSON(rawText);
+
+const projectMeta = parsed.project || {};
+const runInstructions = parsed.runInstructions || "";
+
+
+/* ===============================
+   FILE HANDLING
+================================= */
+
+let updatedFiles;
+
+if(stackChange){
+
+// replace project completely
+updatedFiles = parsed.files || files;
+
+}else{
+
+// merge UI changes
+updatedFiles = {
+...files,
+...parsed.modifiedFiles
+};
+
+}
+
+
+/* ===============================
+   BUILD PREVIEW
+================================= */
+
+let preview = null;
+
+if(updatedFiles && isStaticProject(updatedFiles)){
+  preview = buildStaticPreview(updatedFiles);
+}
+
+if(!preview){
+preview = buildRuntimePreview(
+projectMeta.name || "Generated Project",
+projectMeta.techStack || ["Runtime Stack"],
+runInstructions || "Run locally",
+formatAsTerminal
+);
+}
+
+
+/* ===============================
+   SAVE PROJECT
+================================= */
+
+const updatedProject =
+await Project.findOneAndUpdate(
+{ _id: projectId, userId: req.user.id },
+{
+code:{ files:updatedFiles },
+preview,
+updatedAt:Date.now()
+},
+{ new:true }
+);
+
+
+/* ===============================
+   RESPONSE
+================================= */
+
+res.json({
+modifiedFiles:parsed.modifiedFiles || {},
+preview,
+project:updatedProject
+});
+
+}catch(err){
+
+console.error("REFINE ERROR:",err);
+
+res.status(500).json({
+error:err.message
+});
+
+}
+
+});
+
 
 module.exports = router;
