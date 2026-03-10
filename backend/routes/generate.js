@@ -7,23 +7,34 @@ const formatAsTerminal = require("../utils/terminalFormatter");
 const { buildStaticPreview, buildRuntimePreview } = require("../utils/previewBuilder");
 const { extractLayout } = require("../utils/figmaParser");
 
-
 /* ===============================
    SUPER SAFE JSON PARSER
 ================================= */
 function safeParseJSON(text) {
   try {
     return JSON.parse(text);
-  } catch {
+  } catch (err) {
+
     try {
-      const cleaned = text
-        .replace(/```json|```/g, "")
-        .replace(/\r?\n|\r/g, "")
-        .trim();
+      // remove markdown fences
+      let cleaned = text.replace(/```json|```/g, "").trim();
+
+      // find first { and last }
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+
+      if (start !== -1 && end !== -1) {
+        cleaned = cleaned.substring(start, end + 1);
+      }
+
       return JSON.parse(cleaned);
-    } catch (err) {
-      console.error("JSON PARSE ERROR:", err);
+
+    } catch (err2) {
+
+      console.error("RAW AI RESPONSE:\n", text);
+
       throw new Error("AI returned invalid JSON");
+
     }
   }
 }
@@ -35,82 +46,119 @@ router.post("/", authMiddleware, async (req, res) => {
   const { prompt = "", figmaUrl = "" } = req.body;
 
   try {
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+    const API_URL =
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
     const systemInstruction = `
-        You are an expert web developer.
+You are an expert web developer.
 
-        IMPORTANT STACK RULES:
+IMPORTANT STACK RULES:
 
-        1. If the user DOES NOT explicitly mention a framework or backend,
-          you MUST generate a plain static website using:
-          - HTML
-          - CSS
-          - Vanilla JavaScript
+1. If the user DOES NOT explicitly mention a framework or backend,
+   you MUST generate a plain static website using:
+   - HTML
+   - CSS
+   - Vanilla JavaScript
 
-        2. ONLY use React, Node, Express, Next.js, etc
-          IF the user explicitly asks for them.
+2. ONLY use React, Node, Express, Next.js, etc
+   IF the user explicitly asks for them.
 
-        3. Default stack is ALWAYS:
-          HTML + CSS + JavaScript
+3. Default stack is ALWAYS:
+   HTML + CSS + JavaScript
 
-        4. For static websites:
-          - Use simple file structure:
-              index.html
-              style.css
-              script.js
+4. For static websites use structure:
+   index.html
+   style.css
+   script.js
 
-        5. Do NOT assume modern frameworks unless mentioned.
+Return ONLY valid JSON.
+Do NOT include markdown.
+Do NOT include explanations.
 
-        Return ONLY valid JSON.
-        Do NOT include markdown.
-        Do NOT include explanations.
+JSON FORMAT:
 
-        JSON FORMAT:
+{
+  "project": {
+    "name": "",
+    "techStack": []
+  },
+  "code": {
+    "files": {
+      "file/path.ext": "file content"
+    }
+  },
+  "runInstructions": ""
+}
+`;
 
-        {
-          "project": {
-            "name": "",
-            "techStack": []
-          },
-          "code": {
-            "files": {
-              "file/path.ext": "file content"
-            }
-          },
-          "runInstructions": ""
-        }
-        `;
+    let userPrompt = prompt;
 
-    let figmaData = null;
+    /* ===============================
+       FIGMA HANDLING
+    ================================ */
+
     if (figmaUrl) {
 
       let fileKey = null;
 
-if (figmaUrl.includes("/file/")) {
-  fileKey = figmaUrl.split("/file/")[1].split("/")[0];
-} else if (figmaUrl.includes("/design/")) {
-  fileKey = figmaUrl.split("/design/")[1].split("/")[0];
-}
+      if (figmaUrl.includes("/file/")) {
+        fileKey = figmaUrl.split("/file/")[1].split("/")[0];
+      } else if (figmaUrl.includes("/design/")) {
+        fileKey = figmaUrl.split("/design/")[1].split("/")[0];
+      }
 
       const figmaResponse = await fetch(
-  `https://api.figma.com/v1/files/${fileKey}`,
-  {
-    headers: {
-      "X-Figma-Token": process.env.FIGMA_API_KEY
-    }
-  }
-);
+        `https://api.figma.com/v1/files/${fileKey}`,
+        {
+          headers: {
+            "X-Figma-Token": process.env.FIGMA_API_KEY
+          }
+        }
+      );
 
-const figmaJson = await figmaResponse.json();
+      const figmaJson = await figmaResponse.json();
 
-if (figmaJson && figmaJson.document) {
-const layout = extractLayout(figmaJson);
-figmaData = JSON.stringify(layout);
-} else {
-  console.error("Invalid Figma response:", figmaJson);
-}
+      if (figmaJson && figmaJson.document) {
+        const layout = extractLayout(figmaJson);
+
+        userPrompt = `
+Convert this Figma layout into a responsive website.
+
+Layout Structure:
+${JSON.stringify(layout)}
+
+Rules:
+- Use semantic HTML
+- Use CSS Flexbox/Grid
+- Make it responsive
+- Generate index.html, style.css, script.js
+
+${systemInstruction}
+`;
+      } else {
+        console.error("Invalid Figma response:", figmaJson);
+      }
+
+    } else {
+
+      /* ===============================
+         NORMAL PROMPT GENERATION
+      ================================ */
+
+      userPrompt = `
+Create a website based on this request:
+
+${prompt}
+
+${systemInstruction}
+`;
+
     }
+
+    /* ===============================
+       GEMINI REQUEST
+    ================================ */
 
     const response = await fetch(API_URL, {
       method: "POST",
@@ -121,20 +169,7 @@ figmaData = JSON.stringify(layout);
             role: "user",
             parts: [
               {
-                text: `
-Convert this Figma layout into a responsive website.
-
-Layout Structure:
-${figmaData}
-
-Rules:
-- Use semantic HTML
-- Use CSS Flexbox/Grid
-- Make it responsive
-- Generate index.html, style.css, script.js
-
-${systemInstruction}
-`
+                text: userPrompt
               }
             ]
           }
@@ -151,22 +186,26 @@ ${systemInstruction}
     if (!rawText) throw new Error("Empty AI response");
 
     const result = safeParseJSON(rawText);
+
     const files = result?.code?.files || {};
 
     let preview = null;
 
-    // ✅ STATIC SITE PREVIEW
+    /* ===============================
+       PREVIEW BUILDER
+    ================================ */
+
     if (files["index.html"]) {
 
       preview = buildStaticPreview(files);
 
-      } else {
+    } else {
 
       preview = buildRuntimePreview(
-      result.project?.name || "Generated Project",
-      result.project?.techStack || ["Runtime Stack"],
-      result.runInstructions || "Run locally",
-      formatAsTerminal
+        result.project?.name || "Generated Project",
+        result.project?.techStack || ["Runtime Stack"],
+        result.runInstructions || "Run locally",
+        formatAsTerminal
       );
 
     }
