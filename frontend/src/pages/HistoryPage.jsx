@@ -16,6 +16,8 @@ function HistoryPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   const navigate = useNavigate();
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedProjects, setSelectedProjects] = useState([]);
 
   /* ================= Fetch History ================= */
 
@@ -81,6 +83,44 @@ function HistoryPage() {
     detailed: "flex flex-col gap-6",
   };
 
+  const toggleSelect = (id) => {
+    setSelectedProjects((prev) =>
+      prev.includes(id)
+        ? prev.filter((pid) => pid !== id)
+        : [...prev, id]
+    );
+  };
+
+  const selectAll = () => {
+    const pageIds = history.map((p) => p._id);
+
+    const allSelected = pageIds.every((id) =>
+      selectedProjects.includes(id)
+    );
+
+    if (allSelected) {
+      setSelectedProjects((prev) =>
+        prev.filter((id) => !pageIds.includes(id))
+      );
+    } else {
+      setSelectedProjects((prev) =>
+        Array.from(new Set([...prev, ...pageIds]))
+      );
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedProjects([]);
+    setSelectionMode(false);
+  };
+
+  const deleteSelected = async () => {
+    for (let id of selectedProjects) {
+      await handleDelete(id);
+    }
+    setSelectedProjects([]);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-black transition-colors duration-300">
       <Navbar onLogout={() => navigate("/")} />
@@ -124,6 +164,47 @@ function HistoryPage() {
           </select>
 
         </div>
+        <div className="flex items-center gap-4 mb-6">
+
+          {!selectionMode && (
+            <button
+              onClick={() => setSelectionMode(true)}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg"
+            >
+              Select
+            </button>
+          )}
+
+          {selectionMode && (
+            <>
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                {selectedProjects.length} selected
+              </span>
+
+              <button
+                onClick={selectAll}
+                className="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded"
+              >
+                Select All
+              </button>
+
+              <button
+                onClick={deleteSelected}
+                className="px-3 py-1 bg-red-500 text-white rounded"
+              >
+                Delete
+              </button>
+
+              <button
+                onClick={clearSelection}
+                className="px-3 py-1 bg-gray-300 dark:bg-gray-600 rounded"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+
+        </div>
 
         {/* ================= Projects Layout ================= */}
         <div className={layoutClasses[viewMode]}>
@@ -140,6 +221,9 @@ function HistoryPage() {
               onOpen={handleOpenProject}
               onDelete={handleDelete}
               view={viewMode}
+              selectionMode={selectionMode}
+              selected={selectedProjects.includes(item._id)}
+              onSelect={toggleSelect}
             />
           ))}
 

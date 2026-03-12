@@ -1,6 +1,6 @@
 import { Trash2 } from "lucide-react";
 
-function ProjectCard({ project, onOpen, onDelete, view = "grid" }) {
+function ProjectCard({ project, onOpen, onDelete, view = "grid",selectionMode,selected,onSelect }) {
   const handleDelete = (e) => {
     e.stopPropagation();
     onDelete(project._id);
@@ -14,32 +14,68 @@ function ProjectCard({ project, onOpen, onDelete, view = "grid" }) {
       overflow-hidden
     `,
     list: `
+      relative
       rounded-xl p-4 flex justify-between items-center
       hover:shadow-lg
     `,
     compact: `
+      relative
       rounded-xl p-3
       hover:shadow-md
     `,
     detailed: `
+      relative
       rounded-2xl p-6 flex gap-6 items-start
       hover:shadow-xl
     `,
   };
+  const displayTitle =
+    project.prompt?.trim() ||
+    project.title ||
+    "Figma Design";
 
   return (
     <div
-      onClick={() => onOpen(project._id)}
+      onClick={() => {
+        if (!selectionMode) {
+          onOpen(project._id);
+        }
+      }}
       className={`
         bg-white dark:bg-gray-900
         border border-gray-200 dark:border-gray-700
         transition-all duration-300
-        cursor-pointer
+        ${selectionMode ? "cursor-default" : "cursor-pointer"}
         ${containerStyles[view]}
+        ${selected ? "ring-2 ring-indigo-500 bg-indigo-50 dark:bg-indigo-900/20" : ""}
       `}
     >
+      {selectionMode && (
+        <div className="
+          absolute inset-0
+          bg-indigo-50/40 dark:bg-indigo-900/20
+          pointer-events-none
+        " />
+      )}
+      {selectionMode && (
+        <input
+          type="checkbox"
+          checked={selected}
+          onClick={(e) => e.stopPropagation()}
+          onChange={() => onSelect(project._id)}
+          className="
+            absolute top-3 left-3
+            w-5 h-5
+            accent-indigo-600
+            cursor-pointer
+            z-10
+            transition-transform duration-200
+            hover:scale-110
+            "
+        />
+      )}
       {/* DELETE BUTTON */}
-      {view === "grid" && (
+      {view === "grid" && !selectionMode && (
         <button
           onClick={handleDelete}
           className="
@@ -101,9 +137,11 @@ function ProjectCard({ project, onOpen, onDelete, view = "grid" }) {
             font-semibold text-gray-800 dark:text-gray-100
             ${view === "compact" ? "text-sm truncate" : ""}
             ${view === "detailed" ? "text-lg font-bold" : ""}
+            line-clamp-2
           `}
+          title={displayTitle}
         >
-          {project.prompt}
+          {displayTitle}
         </h2>
 
         {view !== "compact" && (
@@ -114,7 +152,7 @@ function ProjectCard({ project, onOpen, onDelete, view = "grid" }) {
       </div>
 
       {/* INLINE DELETE */}
-      {(view === "list" || view === "detailed") && (
+      {(view === "list" || view === "detailed") && !selectionMode && (
         <Trash2
           onClick={handleDelete}
           className="w-5 h-5 text-red-500 hover:scale-110 transition ml-auto"
