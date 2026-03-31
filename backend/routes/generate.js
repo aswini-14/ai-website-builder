@@ -16,7 +16,6 @@ function safeParseJSON(text) {
   } catch (err) {
 
     try {
-      // remove markdown fences
       let cleaned = text.replace(/```json|```/g, "").trim();
 
       // find first { and last }
@@ -75,6 +74,12 @@ IMPORTANT STACK RULES:
 Return ONLY valid JSON.
 Do NOT include markdown.
 Do NOT include explanations.
+
+IMPORTANT IMAGE RULES:
+- Do NOT use placeholder images such as placeholder.com, via.placeholder.com, or dummyimage.com.
+- Always use real, publicly accessible images from sources like Unsplash, Pexels, or Pixabay.
+- Each image must have a valid direct URL.
+- Use meaningful images relevant to the section (e.g., restaurant food images for food sections, team photos for team sections).
 
 JSON FORMAT:
 
