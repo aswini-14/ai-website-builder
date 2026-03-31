@@ -28,8 +28,7 @@ function Builder() {
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   const [codePanelWidth, setCodePanelWidth] = useState(50);
-  const [viewMode, setViewMode] = useState("split"); 
-// "split" | "code" | "preview"
+  const [viewMode, setViewMode] = useState("split");
   const isDragging = useRef(false);
   const containerRef = useRef(null);
   const startX = useRef(0);
@@ -199,56 +198,48 @@ function Builder() {
     }
   };
 
-  const handleRefine = async () => {
-    if (!refinementPrompt.trim() || !data?.code?.files) return;
+const handleRefine = async () => {
+  if (!refinementPrompt.trim() || !data?.code?.files) return;
 
-    setIsRefining(true);
+  setIsRefining(true);
 
-    try {
-      const token = localStorage.getItem("token");
+  try {
+    const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/refine", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          projectId: selectedProjectId,
-          files: data.code.files,
-          refinementPrompt
-        })
-      });
+    const res = await fetch("http://localhost:5000/refine", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        projectId: selectedProjectId,
+        files: data.code.files,
+        refinementPrompt
+      })
+    });
 
-      if (!res.ok) throw new Error("Refine failed");
+    if (!res.ok) throw new Error("Refine failed");
 
-      const result = await res.json();
+    const result = await res.json();
 
-      if (result.modifiedFiles) {
-        const updatedFiles = {
-          ...data.code.files,
-          ...result.modifiedFiles
-        };
+    // ✅ FIX: Use full updated project from backend
+    if (result.project) {
+      setData(result.project);
 
-        setData({
-          ...data,
-          code: { files: updatedFiles },
-          preview: result.preview
-        });
-
-        const modifiedFile = Object.keys(result.modifiedFiles)[0];
-        if (modifiedFile) setActiveFile(modifiedFile);
-      }
-
-      setRefinementPrompt("");
-
-    } catch (err) {
-      console.error(err);
-      alert("Refinement failed");
-    } finally {
-      setIsRefining(false);
+      const firstFile = Object.keys(result.project.code?.files || {})[0];
+      if (firstFile) setActiveFile(firstFile);
     }
-  };
+
+    setRefinementPrompt("");
+
+  } catch (err) {
+    console.error(err);
+    alert("Refinement failed");
+  } finally {
+    setIsRefining(false);
+  }
+};
 
   const handleCopy = (content, file) => {
     navigator.clipboard.writeText(content);

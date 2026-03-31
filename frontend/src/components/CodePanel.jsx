@@ -235,10 +235,13 @@ function CodePanel({
                 onClick={handleUndo}
                 disabled={isUndoDisabled}
                 title="Undo"
-                className={`p-2 rounded-xl backdrop-blur-md border transition-all duration-200
+                className={`p-2 rounded-xl backdrop-blur-md
+              bg-white/70 dark:bg-gray-900/70
+                border border-gray-200 dark:border-gray-700
+                shadow-lg
                 ${isUndoDisabled
-                  ? "bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed"
-                  : "bg-white/60 border-gray-300 text-gray-700 backdrop-blur-md hover:bg-white hover:scale-105"
+                  ? "bg-gray-200 border-gray-300 text-gray-400 dark:text-gray-700 cursor-not-allowed"
+                  : "bg-white/60 border-gray-300 text-gray-700 dark:text-gray-50 backdrop-blur-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300"
                 }`}
               >
                 <Undo2 className="w-4 h-4" />
@@ -249,10 +252,13 @@ function CodePanel({
                 onClick={handleRedo}
                 disabled={isRedoDisabled}
                 title="Redo"
-                className={` p-2 rounded-xl backdrop-blur-md border transition-all duration-200
+                className={` p-2 rounded-xl backdrop-blur-md
+              bg-white/70 dark:bg-gray-900/70
+                border border-gray-200 dark:border-gray-700
+                shadow-lg
                 ${isRedoDisabled
-                  ? "bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed"
-                  : "bg-white/60 border-gray-300 text-gray-700 backdrop-blur-md hover:bg-white hover:scale-105"
+                  ? "bg-gray-200 border-gray-300 text-gray-400 dark:text-gray-700 cursor-not-allowed"
+                  : "bg-white/60 border-gray-300 text-gray-700 dark:text-gray-50 backdrop-blur-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300"
                 }`}
               >
                 <Redo2 className="w-4 h-4" />
