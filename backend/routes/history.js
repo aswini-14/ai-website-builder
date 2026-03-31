@@ -127,6 +127,55 @@ router.put("/:id", authMiddleware, async (req, res) => {
   }
 });
 
+//Undo Project
+router.post("/:id/undo", authMiddleware, async (req, res) => {
+  const project = await Project.findOne({
+    _id: req.params.id,
+    userId: req.user.id
+  });
+
+  if (!project || project.currentIndex <= 0) {
+    return res.status(400).json({ error: "Cannot undo" });
+  }
+
+  project.currentIndex -= 1;
+
+  const state = project.history[project.currentIndex];
+
+  project.code = state.code;
+  project.preview = state.preview;
+
+  await project.save();
+
+  res.json(project);
+});
+
+// Redo Project
+router.post("/:id/redo", authMiddleware, async (req, res) => {
+  const project = await Project.findOne({
+    _id: req.params.id,
+    userId: req.user.id
+  });
+
+  if (
+    !project ||
+    project.currentIndex >= project.history.length - 1
+  ) {
+    return res.status(400).json({ error: "Cannot redo" });
+  }
+
+  project.currentIndex += 1;
+
+  const state = project.history[project.currentIndex];
+
+  project.code = state.code;
+  project.preview = state.preview;
+
+  await project.save();
+
+  res.json(project);
+});
+
 /* =========================================
    DELETE PROJECT
 ========================================= */

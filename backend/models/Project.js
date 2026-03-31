@@ -9,6 +9,17 @@ const ProjectSchema = new mongoose.Schema(
     preview: { type: Object },
     pages: { type: Array },
     thumbnail: { type: String },
+    history: [
+      {
+        code: { type: Object },
+        preview: { type: Object },
+        createdAt: { type: Date, default: Date.now }
+      }
+    ],
+    currentIndex: {
+      type: Number,
+      default: 0
+    },
 
     // ✅ NEW FIELDS FOR DEPLOYMENT
     deployed: {

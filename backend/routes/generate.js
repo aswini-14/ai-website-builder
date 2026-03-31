@@ -222,7 +222,14 @@ ${systemInstruction}
       code: result.code,
       preview,
       pages: [],
-      thumbnail: null
+      thumbnail: null,
+      history: [
+        {
+          code: result.code,
+          preview
+        }
+      ],
+      currentIndex: 0
     });
 
     res.json(newProject);

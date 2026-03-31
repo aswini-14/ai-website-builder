@@ -256,6 +256,50 @@ function Builder() {
     setTimeout(() => setCopiedFile(null), 1500);
   };
 
+  const handleUndo = async () => {
+    if (!selectedProjectId) return;
+
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(
+      `http://localhost:5000/history/${selectedProjectId}/undo`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const result = await res.json();
+
+    if (res.ok) {
+      setData(result);
+    }
+  };
+
+  const handleRedo = async () => {
+    if (!selectedProjectId) return;
+
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(
+      `http://localhost:5000/history/${selectedProjectId}/redo`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const result = await res.json();
+
+    if (res.ok) {
+      setData(result);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     window.location.href = "/";
@@ -421,6 +465,8 @@ function Builder() {
                         handleRefine={handleRefine}
                         mobileView={mobileView}
                         selectedProjectId={selectedProjectId}
+                        handleUndo={handleUndo}
+                        handleRedo={handleRedo}
                       />
                     </div>
                   )}

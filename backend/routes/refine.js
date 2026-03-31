@@ -254,16 +254,33 @@ formatAsTerminal
    SAVE PROJECT
 ================================= */
 
-const updatedProject =
-await Project.findOneAndUpdate(
-{ _id: projectId, userId: req.user.id },
-{
-code:{ files:updatedFiles },
-preview,
-updatedAt:Date.now()
-},
-{ new:true }
-);
+const project = await Project.findOne({
+  _id: projectId,
+  userId: req.user.id
+});
+
+if (!project) {
+  return res.status(404).json({ error: "Project not found" });
+}
+
+/* 🔥 CUT FUTURE HISTORY (important) */
+const newHistory = project.history.slice(0, project.currentIndex + 1);
+
+/* 🔥 ADD NEW VERSION */
+newHistory.push({
+  code: { files: updatedFiles },
+  preview
+});
+
+/* 🔥 UPDATE */
+project.history = newHistory;
+project.currentIndex = newHistory.length - 1;
+project.code = { files: updatedFiles };
+project.preview = preview;
+
+await project.save();
+
+const updatedProject = project;
 
 
 /* ===============================

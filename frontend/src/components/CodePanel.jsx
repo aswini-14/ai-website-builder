@@ -4,7 +4,9 @@ import {
   Download,
   Mic,
   MicOff,
-  Plus
+  Plus,
+  Undo2,
+  Redo2
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
@@ -26,7 +28,9 @@ function CodePanel({
   handleRefine,
   mobileView,
   setMobileView,
-  selectedProjectId
+  selectedProjectId,
+  handleUndo,
+  handleRedo
 }) {
 
   useEffect(() => {
@@ -47,6 +51,15 @@ function CodePanel({
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showFigmaInput, setShowFigmaInput] = useState(false);
   const [figmaUrl, setFigmaUrl] = useState("");
+  const isUndoDisabled =
+    !data ||
+    !data.history ||
+    data.currentIndex <= 0;
+
+  const isRedoDisabled =
+    !data ||
+    !data.history ||
+    data.currentIndex >= data.history.length - 1;
 
   const createRecognition = (onResult, setListeningState, ref) => {
     if (!("webkitSpeechRecognition" in window)) {
@@ -215,13 +228,51 @@ function CodePanel({
         <div className="flex flex-col flex-1 overflow-hidden px-4 py-2 text-gray-900 dark:text-gray-100">
           <div className="w-full flex items-center justify-between">
             <h2 className="text-xl mb-3">Generated Code</h2>
-            <button
-              onClick={handleDownload}
-              className="p-2 bg-indigo-600 hover:bg-indigo-700 
-              text-white rounded-xl transition"
-            >
-              <Download className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              
+              {/* UNDO */}
+              <button
+                onClick={handleUndo}
+                disabled={isUndoDisabled}
+                title="Undo"
+                className={`p-2 rounded-xl backdrop-blur-md border transition-all duration-200
+                ${isUndoDisabled
+                  ? "bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed"
+                  : "bg-white/60 border-gray-300 text-gray-700 backdrop-blur-md hover:bg-white hover:scale-105"
+                }`}
+              >
+                <Undo2 className="w-4 h-4" />
+              </button>
+
+              {/* REDO */}
+              <button
+                onClick={handleRedo}
+                disabled={isRedoDisabled}
+                title="Redo"
+                className={` p-2 rounded-xl backdrop-blur-md border transition-all duration-200
+                ${isRedoDisabled
+                  ? "bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed"
+                  : "bg-white/60 border-gray-300 text-gray-700 backdrop-blur-md hover:bg-white hover:scale-105"
+                }`}
+              >
+                <Redo2 className="w-4 h-4" />
+              </button>
+
+              {/* DOWNLOAD */}
+              <button
+                onClick={handleDownload}
+                title="Download"
+                className="
+                  p-2 rounded-xl backdrop-blur-md border 
+                  bg-indigo-500/80 border-indigo-400/30 
+                  text-white transition-all duration-200
+                  hover:bg-indigo-500 hover:scale-105
+                "
+              >
+                <Download className="w-4 h-4" />
+              </button>
+
+            </div>
           </div>
 
           <div className="flex gap-2 mb-3 overflow-x-auto">
@@ -301,7 +352,7 @@ function CodePanel({
                 text-gray-900 dark:text-gray-100
                 border-2 border-gray-200 dark:border-gray-700
                 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Describe website + tech stack"
+                placeholder="Describe website"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
               />
