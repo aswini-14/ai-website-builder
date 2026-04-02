@@ -18,7 +18,7 @@ function ResetPassword() {
     if (!userId) {
         navigate("/forgot-password");
     }
-  }, []);
+  }, [navigate]);
   const handleReset = async () => {
     setError("");
 
@@ -49,7 +49,12 @@ function ResetPassword() {
         return;
       }
 
-      navigate("/");
+      localStorage.removeItem("resetToken");
+      localStorage.removeItem("fp_userId");
+      localStorage.removeItem("fp_email");
+
+
+      navigate("/login");
 
     } catch {
       setError("Something went wrong");

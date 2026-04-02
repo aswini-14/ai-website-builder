@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import Navbar from "../components/Navbar";
 
 const templates = [
   {
@@ -131,9 +132,22 @@ function Templates() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-black p-10">
+const handleLogout = () => {
+  const theme = localStorage.getItem("theme");
 
+  localStorage.clear();
+
+  // restore theme
+  if (theme) {
+    localStorage.setItem("theme", theme);
+  }
+
+  window.location.href = "/login";
+};
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-black px-4 pb-4">
+      <Navbar onLogout={handleLogout} />
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">

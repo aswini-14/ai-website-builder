@@ -47,7 +47,6 @@ function HistoryPage() {
     fetchHistory();
   }, [fetchHistory]);
 
-  /* ================= Reset Page When Search Changes ================= */
 
   useEffect(() => {
     setPage(1);
@@ -120,10 +119,22 @@ function HistoryPage() {
     }
     setSelectedProjects([]);
   };
+const handleLogout = () => {
+  const theme = localStorage.getItem("theme");
+
+  localStorage.clear();
+
+  // restore theme
+  if (theme) {
+    localStorage.setItem("theme", theme);
+  }
+
+  window.location.href = "/login";
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-black transition-colors duration-300">
-      <Navbar onLogout={() => navigate("/")} />
+      <Navbar onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-6 py-12">
 

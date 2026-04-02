@@ -49,7 +49,7 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d'
+      expiresIn: '7h'
     });
 
     res.json({
@@ -132,6 +132,12 @@ router.post('/verify-otp', async (req, res) => {
     { expiresIn: "10m" }
   );
 
+  // 🔥 ADD THIS
+  user.resetToken = resetToken;
+  user.resetTokenExpiry = Date.now() + 10 * 60 * 1000;
+
+  await user.save();
+
   res.json({ message: "OTP verified", resetToken });
 });
 
@@ -147,11 +153,24 @@ router.post('/reset-password', async (req, res) => {
 
     const user = await User.findById(decoded.id);
 
+    // 🔥 EXTRA SECURITY CHECK
+    if (
+      !user ||
+      user.resetToken !== token ||
+      user.resetTokenExpiry < Date.now()
+    ) {
+      return res.status(401).json({ message: "Token expired or invalid" });
+    }
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     user.password = hashedPassword;
+
+    // 🔥 CLEAR EVERYTHING (VERY IMPORTANT)
     user.otp = null;
     user.otpExpiry = null;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
 
     await user.save();
 

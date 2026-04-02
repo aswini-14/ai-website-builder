@@ -61,7 +61,7 @@ function Register() {
 
       setIsLoading(false);
       alert("Registration successful!");
-      navigate("/");
+      navigate("/login");
     } catch (err) {
       setError("Unable to connect to server. Please try again.");
       setIsLoading(false);

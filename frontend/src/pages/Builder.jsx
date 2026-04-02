@@ -57,7 +57,7 @@ function Builder() {
   =============================== */
 
   const handleNewProject = () => {
-    navigate("/builder"); // remove query param
+    navigate("/builder");
 
     setData(null);
     setIsGenerated(false);
@@ -223,7 +223,6 @@ const handleRefine = async () => {
 
     const result = await res.json();
 
-    // ✅ FIX: Use full updated project from backend
     if (result.project) {
       setData(result.project);
 
@@ -291,10 +290,18 @@ const handleRefine = async () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/";
-  };
+const handleLogout = () => {
+  const theme = localStorage.getItem("theme");
+
+  localStorage.clear();
+
+  // restore theme
+  if (theme) {
+    localStorage.setItem("theme", theme);
+  }
+
+  window.location.href = "/login";
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-black transition-colors duration-300">
@@ -487,13 +494,8 @@ const handleRefine = async () => {
                       />
                     </div>
                   )}
-
                 </div>
               </div>
-
-
-
-
             )}
           </div>
         </div>

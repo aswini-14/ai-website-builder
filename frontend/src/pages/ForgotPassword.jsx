@@ -155,7 +155,7 @@ function ForgotPassword() {
           {/* Back */}
           <div className="mt-6 text-center">
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/login")}
               className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
             >
               Back to Login
