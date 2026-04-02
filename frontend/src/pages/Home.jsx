@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Sparkles,
   Wand2,
   Download,
-  RefreshCcw
+  RefreshCcw,
+  User
 } from "lucide-react";
 
 const words = ["Build", "Design", "Launch"];
@@ -14,23 +15,16 @@ function Home() {
   const navigate = useNavigate();
   const [text, setText] = useState("");
   const [i, setI] = useState(0);
-  const [isDark, setIsDark] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState("");
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
 
   useEffect(() => {
-    const checkTheme = () => {
-      setIsDark(document.documentElement.classList.contains("dark"));
-    };
-
-    checkTheme();
-
-    const observer = new MutationObserver(checkTheme);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"]
-    });
-
-    return () => observer.disconnect();
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
   }, []);
+
 
 useEffect(() => {
   let index = 0;
@@ -83,17 +77,133 @@ useEffect(() => {
     show: { opacity: 1, y: 0 }
   };
 
+  useEffect(() => {
+    if(!isLoggedIn)return;
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await fetch("http://localhost:5000/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        setUsername(data.name);
+      } catch {
+        console.log("Error fetching user");
+      }
+    };
+
+    fetchUser();
+  }, [isLoggedIn]);
+
+useEffect(() => {
+  const handleClick = (e) => {
+    if (profileRef.current && !profileRef.current.contains(e.target)) {
+      setProfileOpen(false);
+    }
+  };
+
+  document.addEventListener("mousedown", handleClick);
+  return () => document.removeEventListener("mousedown", handleClick);
+}, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-black text-gray-800 dark:text-gray-100 overflow-x-hidden">
 
       {/* NAVBAR */}
-      <div className="flex justify-between items-center px-8 py-4 backdrop-blur-md">
+      <div className="flex justify-between items-center px-8 py-4 backdrop-blur-md relative z-50">
         <h1 className="text-xl font-bold text-indigo-600">AI Code Builder</h1>
         <div className="flex gap-3">
-          <button onClick={() => navigate("/login")}>Login</button>
+          {isLoggedIn ? (
+            <div className="relative z-50" ref={profileRef}>
+
+              {/* BUTTON */}
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="
+                  w-10 h-10 rounded-xl
+                  bg-gradient-to-br from-indigo-500 to-purple-600
+                  flex items-center justify-center
+                  text-white shadow-md
+                "
+              >
+                {username
+                  ? username.charAt(0).toUpperCase()
+                  : <User className="w-5 h-5" />}
+              </button>
+
+              {/* DROPDOWN */}
+              {profileOpen && (
+                <div className="
+                  absolute right-0 mt-3 w-56
+                  bg-white dark:bg-gray-900
+                  border border-gray-200 dark:border-white/10
+                  backdrop-blur-xl
+                  rounded-xl shadow-xl
+                  py-2 z-50
+                ">
+
+                  <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Signed in as
+                    </p>
+                    <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                      {username}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      navigate("/profile");
+                      setProfileOpen(false);
+                    }}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm 
+                    text-gray-700 dark:text-gray-300 
+                    hover:bg-gray-100 dark:hover:bg-white/5"
+                  >
+                    <User className="w-4 h-4" />
+                    Profile
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      localStorage.clear();
+                      setIsLoggedIn(false);
+                      navigate("/");
+                    }}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm 
+                    text-red-600 dark:text-red-400 
+                    hover:bg-red-50 dark:hover:bg-red-500/10"
+                  >
+                    Logout
+                  </button>
+
+                </div>
+              )}
+
+            </div>
+          ) : (
+            <button
+            onClick={() => navigate("/login")}
+            className="
+              px-5 py-2 rounded-lg
+              border border-indigo-500/40
+              text-indigo-600 dark:text-indigo-400
+              bg-white/60 dark:bg-white/5
+              backdrop-blur-md
+              hover:bg-indigo-500 hover:text-white
+              transition-all duration-300
+              shadow-sm hover:shadow-md
+            "
+          >
+            Login
+          </button>
+          )}
           <button
             onClick={() => navigate("/register")}
-            className="px-5 py-2 bg-indigo-600 text-white rounded-lg"
+            className="px-5 mr-10 py-2 bg-indigo-600 text-white rounded-lg"
           >
             Register
           </button>
@@ -101,7 +211,7 @@ useEffect(() => {
       </div>
 
       {/* HERO */}
-      <motion.div style={{ y }} className="text-center py-32 px-6 relative">
+      <motion.div style={{ y }} className="text-center py-32 px-6 relative z-0">
         <div className="absolute inset-0 flex justify-center pointer-events-none">
           <div className="w-[500px] h-[600px] bg-indigo-500/20 blur-3xl rounded-full animate-pulse"></div>
         </div>
@@ -122,7 +232,15 @@ useEffect(() => {
         <div className="flex justify-center gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
-            onClick={() => navigate("/login")}
+            onClick={() => {
+
+              if (isLoggedIn) {
+                navigate("/templates");
+              } // logged in
+              else {
+                navigate("/login"); // not logged in
+              }
+            }}
             className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl"
           >
             Generate Website
@@ -219,7 +337,11 @@ useEffect(() => {
 
               {/* IMAGE */}
               <img
-                src={isDark ? "/Sample(Dark).png" : "/Sample (Light).png"}
+                src={
+                  document.documentElement.classList.contains("dark")
+                    ? "/Sample(Dark).png"
+                    : "/Sample (Light).png"
+                }
                 alt="Website Preview"
                 className="
                   w-full

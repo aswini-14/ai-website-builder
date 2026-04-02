@@ -3,14 +3,24 @@ import {
   Sparkles,
   User,
   LogOut,
-  History
+  Home,
+  History,
+  LayoutTemplate,
+  Code,
+  Menu
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
-function Navbar({ onLogout}) {
-  const [open, setOpen] = useState(false);
-  const dropdownRef = useRef(null);
+function Navbar({ onLogout }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const menuRef = useRef(null);
+  const profileRef = useRef(null);
+
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [username, setUsername] = useState("");
 
   useEffect(() => {
@@ -20,93 +30,141 @@ function Navbar({ onLogout}) {
   const fetchUser = async () => {
     try {
       const token = localStorage.getItem("token");
-
       const res = await fetch("http://localhost:5000/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
-
       const data = await res.json();
       setUsername(data.name);
-    } catch (err) {
-      console.error("Failed to fetch user");
+    } catch {
+      console.log("Error fetching user");
     }
   };
 
-  // Close dropdown on outside click
+  // Close dropdowns
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setOpen(false);
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  // 🔥 Reusable menu item with ACTIVE STATE
+  const menuItem = (path, label, Icon) => {
+    const active = location.pathname === path;
+
+    return (
+      <button
+        onClick={() => {
+          navigate(path);
+          setMenuOpen(false);
+        }}
+        className={`
+          relative flex items-center gap-2 w-full px-4 py-2 text-sm rounded-lg transition
+
+          ${active
+            ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300"
+            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
+          }
+        `}
+      >
+        {/* LEFT ACTIVE BAR */}
+        {active && (
+          <span className="absolute left-0 top-0 h-full w-1 bg-indigo-500 rounded-r"></span>
+        )}
+
+        <Icon className={`w-4 h-4 ${active ? "text-indigo-500" : ""}`} />
+        {label}
+      </button>
+    );
+  };
+
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-300">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-        
-        {/* Logo Section */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-white" />
+    <nav className="
+      sticky top-0 z-50
+      backdrop-blur-xl
+      bg-white/70 dark:bg-black/30
+      border-b border-gray-200 dark:border-white/10
+    ">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+
+        {/* LOGO */}
+        <div
+          onClick={() => navigate("/")}
+          className="flex items-center gap-3 cursor-pointer"
+        >
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+
+          <span className="text-lg font-semibold text-gray-800 dark:text-white">
             AI Code Builder
           </span>
         </div>
 
-        {/* Right Section */}
-        <div className="flex items-center gap-4">
+        {/* RIGHT */}
+        <div className="flex items-center gap-3">
 
-
-          {/* Profile Dropdown */}
-          <div className="relative" ref={dropdownRef}>
+          {/* PROFILE */}
+          <div className="relative" ref={profileRef}>
             <button
-              onClick={() => setOpen(!open)}
-              className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center hover:bg-indigo-200 dark:hover:bg-indigo-800 transition"
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="
+                w-10 h-10 rounded-xl
+                bg-gradient-to-br from-indigo-500 to-purple-600
+                flex items-center justify-center
+                text-white shadow-md
+              "
             >
-              <User className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />
+              {username ? username.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
             </button>
 
-            {open && (
-              <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50 transition-colors duration-300">
-                
-                {/* Username */}
-                <div className="px-4 py-2 text-sm border-b border-gray-200 dark:border-gray-700">
-                  <div className="text-gray-500 dark:text-gray-400">
+            {profileOpen && (
+              <div className="
+                absolute right-0 mt-3 w-56
+                bg-white dark:bg-gray-900
+                border border-gray-200 dark:border-white/10
+                backdrop-blur-xl
+                rounded-xl shadow-xl
+                py-2
+              ">
+
+                <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Signed in as
-                  </div>
-                  <div className="font-semibold text-indigo-600 dark:text-indigo-400">
+                  </p>
+                  <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                     {username}
-                  </div>
+                  </p>
                 </div>
 
-                {/* History */}
                 <button
                   onClick={() => {
-                    navigate("/history");
-                    setOpen(false);
+                    navigate("/profile");
+                    setProfileOpen(false);
                   }}
-                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-700 transition"
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm 
+                  text-gray-700 dark:text-gray-300 
+                  hover:bg-gray-100 dark:hover:bg-white/5"
                 >
-                  <History className="w-4 h-4" />
-                  History
+                  <User className="w-4 h-4" />
+                  Profile
                 </button>
 
-                {/* Logout */}
                 <button
                   onClick={() => {
-                    setOpen(false);
+                    setProfileOpen(false);
                     onLogout();
                   }}
-                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm 
+                  text-red-600 dark:text-red-400 
+                  hover:bg-red-50 dark:hover:bg-red-500/10"
                 >
                   <LogOut className="w-4 h-4" />
                   Logout
@@ -116,8 +174,46 @@ function Navbar({ onLogout}) {
             )}
           </div>
 
-        </div>
+          {/* HAMBURGER */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="
+                w-10 h-10 rounded-xl
+                bg-gray-100 dark:bg-white/5
+                hover:bg-gray-200 dark:hover:bg-white/10
+                border border-gray-300 dark:border-white/10
+                flex items-center justify-center
+                text-gray-700 dark:text-white
+                transition
+              "
+            >
+              <Menu className="w-5 h-5" />
+            </button>
 
+            {menuOpen && (
+              <div className="
+                absolute right-0 mt-3 w-56
+                bg-white dark:bg-gray-900
+                border border-gray-200 dark:border-white/10
+                backdrop-blur-xl
+                rounded-xl shadow-xl
+                py-2
+              ">
+
+                {menuItem("/", "Home", Home)}
+
+                <div className="my-1 border-t border-gray-200 dark:border-white/10"></div>
+
+                {menuItem("/builder", "Builder", Code)}
+                {menuItem("/templates", "Templates", LayoutTemplate)}
+                {menuItem("/history", "History", History)}
+
+              </div>
+            )}
+          </div>
+
+        </div>
       </div>
     </nav>
   );

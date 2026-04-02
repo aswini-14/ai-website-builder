@@ -10,7 +10,8 @@ import VerifyOtp from "./pages/VerifyOtp";
 import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HistoryPage from "./pages/HistoryPage";
-import Templates from "./pages/Templates";   
+import Templates from "./pages/Templates";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -25,6 +26,15 @@ function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Protected Routes */}
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/templates"
           element={
@@ -51,6 +61,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+
       </Routes>
 
       <ThemeToggle />

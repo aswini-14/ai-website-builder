@@ -181,6 +181,18 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+router.put("/update-profile", authMiddleware, async (req, res) => {
+  const { name } = req.body;
+
+  const user = await User.findById(req.user.id);
+
+  user.name = name || user.name;
+
+  await user.save();
+
+  res.json({ message: "Profile updated" });
+});
+
 /* ================= GET USER ================= */
 router.get("/me", authMiddleware, async (req, res) => {
   const user = await User.findById(req.user.id).select("name email");
