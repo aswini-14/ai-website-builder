@@ -1,13 +1,13 @@
-import { useNavigate } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
 import {
-  Sparkles,
-  Wand2,
-  Download,
-  RefreshCcw,
-  User
+    Download,
+    RefreshCcw,
+    Sparkles,
+    User,
+    Wand2
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const words = ["Build", "Design", "Launch"];
 
@@ -84,7 +84,7 @@ useEffect(() => {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const res = await fetch("http://localhost:5000/api/auth/me", {
+        const res = await fetch(`${process.env.BACKEND_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 

@@ -1,14 +1,14 @@
 import {
-  Sparkles,
-  Loader2,
-  Download,
-  Mic,
-  MicOff,
-  Plus,
-  Undo2,
-  Redo2
+    Download,
+    Loader2,
+    Mic,
+    MicOff,
+    Plus,
+    Redo2,
+    Sparkles,
+    Undo2
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 function CodePanel({
@@ -122,7 +122,7 @@ function CodePanel({
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://localhost:5000/history/${selectedProjectId}/download`,
+        `${process.env.BACKEND_URL}/history/${selectedProjectId}/download`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -157,7 +157,7 @@ function CodePanel({
 
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/explain", {
+      const res = await fetch(`${process.env.BACKEND_URL}/explain`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

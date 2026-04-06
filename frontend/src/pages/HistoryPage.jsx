@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import ProjectCard from "../components/ProjectCard";
 import NewProjectCard from "../components/NewProjectCard";
+import ProjectCard from "../components/ProjectCard";
 import SearchBar from "../components/SearchBar";
 
 function HistoryPage() {
@@ -26,7 +26,7 @@ function HistoryPage() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://localhost:5000/history?page=${page}&limit=7&search=${searchQuery}`,
+        `${process.env.BACKEND_URL}/history?page=${page}&limit=7&search=${searchQuery}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -62,7 +62,7 @@ function HistoryPage() {
     try {
       const token = localStorage.getItem("token");
 
-      await fetch(`http://localhost:5000/history/${id}`, {
+      await fetch(`${process.env.BACKEND_URL}/history/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });

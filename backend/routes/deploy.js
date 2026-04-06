@@ -22,7 +22,7 @@ router.post("/:id", authMiddleware, async (req, res) => {
 
     res.json({
       message: "Project deployed successfully",
-      url: `http://localhost:5000/site/${project._id}`
+      url: `${BACKEND_URL}/site/${project._id}`
     });
 
   } catch (err) {

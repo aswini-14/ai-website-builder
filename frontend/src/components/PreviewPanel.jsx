@@ -1,5 +1,5 @@
+import { Loader2, Rocket } from "lucide-react";
 import { useState } from "react";
-import { Rocket, Loader2 } from "lucide-react";
 
 function PreviewPanel({ data, mobileView, setMobileView }) {
 
@@ -40,7 +40,7 @@ function PreviewPanel({ data, mobileView, setMobileView }) {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://localhost:5000/deploy/${data._id}`,
+        `${process.env.BACKEND_URL}/deploy/${data._id}`,
         {
           method: "POST",
           headers: {

@@ -1,11 +1,11 @@
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef, useCallback } from "react";
 import { PanelLeft } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-import Navbar from "../components/Navbar";
 import CodePanel from "../components/CodePanel";
-import PreviewPanel from "../components/PreviewPanel";
 import HistorySidebar from "../components/HistorySidebar";
+import Navbar from "../components/Navbar";
+import PreviewPanel from "../components/PreviewPanel";
 
 function Builder() {
   const navigate = useNavigate();
@@ -124,7 +124,7 @@ function Builder() {
         const token = localStorage.getItem("token");
 
         const res = await fetch(
-          `http://localhost:5000/history/${projectIdFromURL}`,
+          `${process.env.BACKEND_URL}/history/${projectIdFromURL}`,
           {
             headers: {
               Authorization: `Bearer ${token}`
@@ -165,7 +165,7 @@ function Builder() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/generate", {
+      const res = await fetch(`${process.env.BACKEND_URL}/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -206,7 +206,7 @@ const handleRefine = async () => {
   try {
     const token = localStorage.getItem("token");
 
-    const res = await fetch("http://localhost:5000/refine", {
+    const res = await fetch(`${process.env.BACKEND_URL}/refine`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -252,7 +252,7 @@ const handleRefine = async () => {
     const token = localStorage.getItem("token");
 
     const res = await fetch(
-      `http://localhost:5000/history/${selectedProjectId}/undo`,
+      `${process.env.BACKEND_URL}/history/${selectedProjectId}/undo`,
       {
         method: "POST",
         headers: {
@@ -274,7 +274,7 @@ const handleRefine = async () => {
     const token = localStorage.getItem("token");
 
     const res = await fetch(
-      `http://localhost:5000/history/${selectedProjectId}/redo`,
+      `${process.env.BACKEND_URL}/history/${selectedProjectId}/redo`,
       {
         method: "POST",
         headers: {
@@ -398,7 +398,7 @@ const handleLogout = () => {
               /* DESKTOP VIEW */
               <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
-                {/* 🔥 VIEW MODE CONTROLS */}
+                {/* VIEW MODE CONTROLS */}
                 <div className="flex justify-end gap-3 mb-4">
                   <button
                     onClick={() => setViewMode("split")}

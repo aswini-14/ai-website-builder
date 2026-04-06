@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { AlertCircle, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ShieldCheck, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 
 function VerifyOtp() {
   const [otp, setOtp] = useState("");
@@ -49,7 +49,7 @@ function VerifyOtp() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/verify-otp", {
+      const res = await fetch(`${process.env.BACKEND_URL}/api/auth/verify-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -78,7 +78,7 @@ function VerifyOtp() {
   const handleResend = async () => {
     setError("");
 
-    const res = await fetch("http://localhost:5000/api/auth/forgot-password", {
+    const res = await fetch(`${process.env.BACKEND_URL}/api/auth/forgot-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

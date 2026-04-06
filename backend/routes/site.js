@@ -7,7 +7,6 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // ✅ Ignore non-objectId requests (like style.css, script.js)
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(404).send("Not found");
     }

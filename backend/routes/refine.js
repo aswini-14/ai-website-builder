@@ -263,16 +263,13 @@ if (!project) {
   return res.status(404).json({ error: "Project not found" });
 }
 
-/* 🔥 CUT FUTURE HISTORY (important) */
 const newHistory = project.history.slice(0, project.currentIndex + 1);
 
-/* 🔥 ADD NEW VERSION */
 newHistory.push({
   code: { files: updatedFiles },
   preview
 });
 
-/* 🔥 UPDATE */
 project.history = newHistory;
 project.currentIndex = newHistory.length - 1;
 project.code = { files: updatedFiles };

@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
 const templates = [
@@ -111,7 +111,7 @@ function Templates() {
       setLoadingId(template.id);
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/generate", {
+      const res = await fetch(`${process.env.BACKEND_URL}/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

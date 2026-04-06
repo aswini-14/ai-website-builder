@@ -1,15 +1,15 @@
-import { useState, useRef, useEffect } from "react";
 import {
-  Sparkles,
-  User,
-  LogOut,
-  Home,
-  History,
-  LayoutTemplate,
-  Code,
-  Menu
+    Code,
+    History,
+    Home,
+    LayoutTemplate,
+    LogOut,
+    Menu,
+    Sparkles,
+    User
 } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 function Navbar({ onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -30,7 +30,7 @@ function Navbar({ onLogout }) {
   const fetchUser = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/auth/me", {
+      const res = await fetch(`${process.env.BACKEND_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();

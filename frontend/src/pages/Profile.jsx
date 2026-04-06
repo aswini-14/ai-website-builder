@@ -1,6 +1,6 @@
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
 
 function Profile() {
@@ -14,7 +14,7 @@ function Profile() {
     const fetchUser = async () => {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/auth/me", {
+      const res = await fetch(`${process.env.BACKEND_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -30,7 +30,7 @@ function Profile() {
   const handleUpdate = async () => {
     const token = localStorage.getItem("token");
 
-    await fetch("http://localhost:5000/api/auth/update-profile", {
+    await fetch(`${process.env.BACKEND_URL}/api/auth/update-profile`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

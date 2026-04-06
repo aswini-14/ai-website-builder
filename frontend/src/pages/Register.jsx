@@ -1,16 +1,16 @@
+import {
+    AlertCircle,
+    CheckCircle2,
+    Eye,
+    EyeOff,
+    Loader2,
+    Lock,
+    Mail,
+    Sparkles,
+    User
+} from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  User,
-  Mail,
-  Lock,
-  AlertCircle,
-  Sparkles,
-  Loader2,
-  Eye,
-  EyeOff,
-  CheckCircle2
-} from "lucide-react";
 
 function Register() {
   const [name, setName] = useState("");
@@ -45,7 +45,7 @@ function Register() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
+      const res = await fetch(`${process.env.BACKEND_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password })

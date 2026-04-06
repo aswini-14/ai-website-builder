@@ -1,6 +1,6 @@
+import { AlertCircle, Loader2, Mail, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, AlertCircle, Loader2, Sparkles } from "lucide-react";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -19,7 +19,7 @@ function ForgotPassword() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/forgot-password", {
+      const res = await fetch(`${process.env.BACKEND_URL}/api/auth/forgot-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

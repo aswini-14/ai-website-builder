@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef ,useCallback} from "react";
 import { Plus } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function HistorySidebar({ onSelectProject, onNewProject, selectedId, refreshKey })  {
   const [history, setHistory] = useState([]);
@@ -18,7 +18,7 @@ function HistorySidebar({ onSelectProject, onNewProject, selectedId, refreshKey 
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://localhost:5000/history?page=${pageNumber}&limit=10`,
+        `${process.env.BACKEND_URL}/history?page=${pageNumber}&limit=10`,
         {
           headers: {
             Authorization: `Bearer ${token}`
