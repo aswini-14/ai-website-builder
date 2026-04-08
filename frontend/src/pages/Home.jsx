@@ -21,7 +21,6 @@ function Home() {
   const profileRef = useRef(null);
 
   useEffect(() => {
-    console.log(process.env.REACT_APP_BACKEND_URL);
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
   }, []);
