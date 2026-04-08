@@ -124,7 +124,7 @@ function Builder() {
         const token = localStorage.getItem("token");
 
         const res = await fetch(
-          `${process.env.BACKEND_URL}/history/${projectIdFromURL}`,
+          `${process.env.REACT_APP_BACKEND_URL}/history/${projectIdFromURL}`,
           {
             headers: {
               Authorization: `Bearer ${token}`
@@ -165,7 +165,7 @@ function Builder() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch(`${process.env.BACKEND_URL}/generate`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -206,7 +206,7 @@ const handleRefine = async () => {
   try {
     const token = localStorage.getItem("token");
 
-    const res = await fetch(`${process.env.BACKEND_URL}/refine`, {
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/refine`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -252,7 +252,7 @@ const handleRefine = async () => {
     const token = localStorage.getItem("token");
 
     const res = await fetch(
-      `${process.env.BACKEND_URL}/history/${selectedProjectId}/undo`,
+      `${process.env.REACT_APP_BACKEND_URL}/history/${selectedProjectId}/undo`,
       {
         method: "POST",
         headers: {
@@ -274,7 +274,7 @@ const handleRefine = async () => {
     const token = localStorage.getItem("token");
 
     const res = await fetch(
-      `${process.env.BACKEND_URL}/history/${selectedProjectId}/redo`,
+      `${process.env.REACT_APP_BACKEND_URL}/history/${selectedProjectId}/redo`,
       {
         method: "POST",
         headers: {

@@ -122,7 +122,7 @@ function CodePanel({
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `${process.env.BACKEND_URL}/history/${selectedProjectId}/download`,
+        `${process.env.REACT_APP_BACKEND_URL}/history/${selectedProjectId}/download`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -157,7 +157,7 @@ function CodePanel({
 
       const token = localStorage.getItem("token");
 
-      const res = await fetch(`${process.env.BACKEND_URL}/explain`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/explain`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

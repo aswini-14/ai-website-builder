@@ -21,7 +21,7 @@ function VerifyOtp() {
     if (!userId) {
         navigate("/forgot-password");
     }
-  }, []);
+  }, [navigate]);
 
   /* ⏳ TIMER */
   useEffect(() => {
@@ -49,7 +49,7 @@ function VerifyOtp() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${process.env.BACKEND_URL}/api/auth/verify-otp`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/verify-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -78,7 +78,7 @@ function VerifyOtp() {
   const handleResend = async () => {
     setError("");
 
-    const res = await fetch(`${process.env.BACKEND_URL}/api/auth/forgot-password`, {
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/forgot-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

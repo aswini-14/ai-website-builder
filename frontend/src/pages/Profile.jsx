@@ -14,7 +14,7 @@ function Profile() {
     const fetchUser = async () => {
       const token = localStorage.getItem("token");
 
-      const res = await fetch(`${process.env.BACKEND_URL}/api/auth/me`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -30,7 +30,7 @@ function Profile() {
   const handleUpdate = async () => {
     const token = localStorage.getItem("token");
 
-    await fetch(`${process.env.BACKEND_URL}/api/auth/update-profile`, {
+    await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/update-profile`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

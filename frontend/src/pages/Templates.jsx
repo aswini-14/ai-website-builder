@@ -111,7 +111,7 @@ function Templates() {
       setLoadingId(template.id);
       const token = localStorage.getItem("token");
 
-      const res = await fetch(`${process.env.BACKEND_URL}/generate`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

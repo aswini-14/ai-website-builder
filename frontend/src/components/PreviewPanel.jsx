@@ -40,7 +40,7 @@ function PreviewPanel({ data, mobileView, setMobileView }) {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `${process.env.BACKEND_URL}/deploy/${data._id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/deploy/${data._id}`,
         {
           method: "POST",
           headers: {

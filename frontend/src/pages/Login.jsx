@@ -1,11 +1,11 @@
 import {
-    AlertCircle,
-    Eye,
-    EyeOff,
-    Loader2,
-    Lock,
-    Mail,
-    Sparkles
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+  Sparkles
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +23,7 @@ function Login() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${process.env.BACKEND_URL}/api/auth/login`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })

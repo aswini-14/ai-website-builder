@@ -26,7 +26,7 @@ function HistoryPage() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `${process.env.BACKEND_URL}/history?page=${page}&limit=7&search=${searchQuery}`,
+        `${process.env.REACT_APP_BACKEND_URL}/history?page=${page}&limit=7&search=${searchQuery}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -62,7 +62,7 @@ function HistoryPage() {
     try {
       const token = localStorage.getItem("token");
 
-      await fetch(`${process.env.BACKEND_URL}/history/${id}`, {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/history/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });

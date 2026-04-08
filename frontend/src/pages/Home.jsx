@@ -21,6 +21,7 @@ function Home() {
   const profileRef = useRef(null);
 
   useEffect(() => {
+    console.log(process.env.REACT_APP_BACKEND_URL);
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
   }, []);
@@ -84,7 +85,7 @@ useEffect(() => {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const res = await fetch(`${process.env.BACKEND_URL}/api/auth/me`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 

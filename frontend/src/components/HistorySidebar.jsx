@@ -18,7 +18,7 @@ function HistorySidebar({ onSelectProject, onNewProject, selectedId, refreshKey 
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `${process.env.BACKEND_URL}/history?page=${pageNumber}&limit=10`,
+        `${process.env.REACT_APP_BACKEND_URL}/history?page=${pageNumber}&limit=10`,
         {
           headers: {
             Authorization: `Bearer ${token}`

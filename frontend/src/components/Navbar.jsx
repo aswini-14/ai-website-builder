@@ -30,7 +30,7 @@ function Navbar({ onLogout }) {
   const fetchUser = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.BACKEND_URL}/api/auth/me`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
