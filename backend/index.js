@@ -24,7 +24,6 @@ app.get('/protected', authMiddleware, (req, res) => {
 app.use('/generate', generateRoutes);
 app.use("/refine", refineRoute);
 app.use("/history", historyRoutes);
-app.use("/explain", explainRoute);
 app.use("/deploy", deployRoutes);
 app.use("/site", siteRoutes);
 app.use("/figma", figmaRoutes);
@@ -37,6 +36,8 @@ app.get('/', (req, res) => {
   res.send('Backend is running!');
 });
 
+const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
