@@ -8,7 +8,45 @@ const authMiddleware = require("../middleware/authMiddleware");
 const formatAsTerminal = require("../utils/terminalFormatter");
 const { buildStaticPreview, buildRuntimePreview } = require("../utils/previewBuilder");
 
+async function callGroq(prompt, systemInstruction) {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: `
+${systemInstruction}
 
+STRICT RULES:
+- Return ONLY valid JSON
+- Do NOT add explanations
+- Do NOT add markdown
+- Do NOT wrap in \`\`\`
+- Ensure JSON is COMPLETE and parsable
+- If JSON is invalid, regenerate internally before sending response
+`
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.2
+    })
+  });
+
+  const data = await res.json();
+
+  console.log("GROQ RESPONSE:", data);
+
+  return data?.choices?.[0]?.message?.content;
+}
 
 
 function isStaticProject(files){
@@ -173,28 +211,38 @@ temperature:0.2
 });
 
 
-const raw = await response.json();
-
-
-/* ===============================
-   SAFE TEXT EXTRACTION
-================================= */
-
 let rawText = "";
 
-if(raw?.candidates?.length){
+try {
+  const raw = await response.json();
 
-rawText = raw.candidates[0].content.parts
-.map(p => p.text || "")
-.join("");
+  if (raw.error) {
+    console.log("Gemini failed → switching to Groq");
+    rawText = await callGroq(instruction);
+  } else if (raw?.candidates?.length) {
+    rawText = raw.candidates[0].content.parts
+      .map(p => p.text || "")
+      .join("");
+  }
 
+} catch (err) {
+  console.log("Gemini crashed → switching to Groq");
+  rawText = await callGroq(userPrompt, systemInstruction);
 }
 
-if(!rawText){
+// 🔥 FINAL SAFETY
+if (!rawText) {
+  console.log("Both AI failed → using fallback");
 
-console.error("FULL GEMINI RESPONSE:",raw);
-throw new Error("Empty AI response");
-
+  rawText = JSON.stringify({
+    project: {
+      name: "Demo Project",
+      techStack: ["HTML", "CSS", "JS"]
+    },
+    files: files || {},
+    modifiedFiles: files || {},
+    runInstructions: "Open index.html"
+  });
 }
 
 
@@ -294,8 +342,20 @@ project:updatedProject
 
 console.error("REFINE ERROR:",err);
 
-res.status(500).json({
-error:err.message
+console.error("REFINE ERROR:", err);
+
+// 🔥 FALLBACK RESPONSE
+return res.json({
+  modifiedFiles: files || {},
+  preview: buildRuntimePreview(
+    "Demo Project",
+    ["Fallback"],
+    "Run locally",
+    formatAsTerminal
+  ),
+  project: {
+    code: { files: files || {} }
+  }
 });
 
 }

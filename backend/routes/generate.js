@@ -39,7 +39,7 @@ function safeParseJSON(text) {
 }
 
 
-async function callGroq(prompt) {
+async function callGroq(prompt, systemInstruction) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -49,8 +49,24 @@ async function callGroq(prompt) {
     body: JSON.stringify({
       model: "llama-3.1-8b-instant",
       messages: [
-        { role: "system", content: "You are an expert web developer. Return ONLY JSON." },
-        { role: "user", content: prompt }
+        {
+          role: "system",
+          content: `
+${systemInstruction}
+
+STRICT RULES:
+- Return ONLY valid JSON
+- Do NOT add explanations
+- Do NOT add markdown
+- Do NOT wrap in \`\`\`
+- Ensure JSON is COMPLETE and parsable
+- If JSON is invalid, regenerate internally before sending response
+`
+        },
+        {
+          role: "user",
+          content: prompt
+        }
       ],
       temperature: 0.2
     })
@@ -58,7 +74,7 @@ async function callGroq(prompt) {
 
   const data = await res.json();
 
-  console.log("GROQ RESPONSE:", data); // 🔥 IMPORTANT
+  console.log("GROQ RESPONSE:", data);
 
   return data?.choices?.[0]?.message?.content;
 }
@@ -210,10 +226,6 @@ ${systemInstruction}
       })
     });
 
-    // const raw = await response.json();
-    // const rawText = raw?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    // if (!rawText) throw new Error("Empty AI response");
 
     let rawText = null;
 
@@ -223,7 +235,7 @@ try {
   // 🔥 If Gemini gives error → switch to Groq
   if (raw.error) {
     console.log("Gemini failed, switching to Groq...");
-    rawText = await callGroq(userPrompt);
+    rawText = await callGroq(userPrompt, systemInstruction);
   } else {
     rawText = raw?.candidates?.[0]?.content?.parts
       ?.map(p => p.text)
@@ -232,7 +244,7 @@ try {
 
 } catch (err) {
   console.log("Gemini crashed, switching to Groq...");
-  rawText = await callGroq(userPrompt);
+  rawText = await callGroq(userPrompt, systemInstruction);
 }
 
 // ❗ Final check
