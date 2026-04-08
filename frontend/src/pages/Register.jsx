@@ -305,7 +305,7 @@ function Register() {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Already have an account?{" "}
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/login")}
                 className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-semibold transition-colors"
               >
                 Sign in
