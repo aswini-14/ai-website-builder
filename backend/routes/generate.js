@@ -6,7 +6,11 @@ const authMiddleware = require("../middleware/authMiddleware");
 const formatAsTerminal = require("../utils/terminalFormatter");
 const { buildStaticPreview, buildRuntimePreview } = require("../utils/previewBuilder");
 const { extractLayout } = require("../utils/figmaParser");
+const Groq = require("groq-sdk"); // ✅ added
 
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 /* ===============================
    SUPER SAFE JSON PARSER
 ================================= */
@@ -162,31 +166,25 @@ ${systemInstruction}
     }
 
     /* ===============================
-       GEMINI REQUEST
+       GROQ REQUEST
     ================================ */
 
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: userPrompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.2
-        }
-      })
-    });
+    const completion = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [
+      {
+        role: "system",
+        content: systemInstruction
+      },
+      {
+        role: "user",
+        content: userPrompt
+      }
+    ],
+    temperature: 0.2,
+  });
 
-    const raw = await response.json();
-    const rawText = raw?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const rawText = completion.choices[0]?.message?.content;
 
     if (!rawText) throw new Error("Empty AI response");
 
