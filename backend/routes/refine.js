@@ -8,10 +8,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const formatAsTerminal = require("../utils/terminalFormatter");
 const { buildStaticPreview, buildRuntimePreview } = require("../utils/previewBuilder");
 
-const Groq = require("groq-sdk");
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+
 
 
 function isStaticProject(files){
@@ -146,29 +143,51 @@ Return ONLY JSON:
 
 
 /* ===============================
-   GROQ API
+   GEMINI API
 ================================= */
 
-/* ===============================
-   GROQ API
-================================= */
+const API_URL =
+`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
-const completion = await groq.chat.completions.create({
-  model: "llama-3.1-8b-instant",
-  messages: [
-    {
-      role: "user",
-      content: instruction
-    }
-  ],
-  temperature: 0.2,
+const response = await fetch(API_URL,{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({
+
+contents:[
+{
+role:"user",
+parts:[
+{
+text:instruction
+}
+]
+}
+],
+
+generationConfig:{
+temperature:0.2
+}
+
+})
 });
 
-const rawText = completion.choices[0]?.message?.content;
 
-if (!rawText) {
-  console.error("Groq failed response:", completion);
-  throw new Error("Empty AI response");
+const raw = await response.json();
+
+
+/* ===============================
+   SAFE TEXT EXTRACTION
+================================= */
+
+let rawText = "";
+
+if(raw?.candidates?.length){
+
+rawText = raw.candidates[0].content.parts
+.map(p => p.text || "")
+.join("");
+
 }
 
 if(!rawText){

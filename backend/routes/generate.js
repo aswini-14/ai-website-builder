@@ -6,11 +6,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const formatAsTerminal = require("../utils/terminalFormatter");
 const { buildStaticPreview, buildRuntimePreview } = require("../utils/previewBuilder");
 const { extractLayout } = require("../utils/figmaParser");
-const Groq = require("groq-sdk"); // ✅ added
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
 /* ===============================
    SUPER SAFE JSON PARSER
 ================================= */
@@ -40,6 +36,31 @@ function safeParseJSON(text) {
 
     }
   }
+}
+
+
+async function callGroq(prompt) {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: "You are an expert web developer. Return ONLY JSON." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.2
+    })
+  });
+
+  const data = await res.json();
+
+  console.log("GROQ RESPONSE:", data); // 🔥 IMPORTANT
+
+  return data?.choices?.[0]?.message?.content;
 }
 
 /* ===============================
@@ -166,27 +187,56 @@ ${systemInstruction}
     }
 
     /* ===============================
-       GROQ REQUEST
+       GEMINI REQUEST
     ================================ */
 
-    const completion = await groq.chat.completions.create({
-    model: "llama-3.1-8b-instant",
-    messages: [
-      {
-        role: "system",
-        content: systemInstruction
-      },
-      {
-        role: "user",
-        content: userPrompt
-      }
-    ],
-    temperature: 0.2,
-  });
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: userPrompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.2
+        }
+      })
+    });
 
-  const rawText = completion.choices[0]?.message?.content;
+    // const raw = await response.json();
+    // const rawText = raw?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (!rawText) throw new Error("Empty AI response");
+    // if (!rawText) throw new Error("Empty AI response");
+
+    let rawText = null;
+
+try {
+  const raw = await response.json();
+
+  // 🔥 If Gemini gives error → switch to Groq
+  if (raw.error) {
+    console.log("Gemini failed, switching to Groq...");
+    rawText = await callGroq(userPrompt);
+  } else {
+    rawText = raw?.candidates?.[0]?.content?.parts
+      ?.map(p => p.text)
+      ?.join("");
+  }
+
+} catch (err) {
+  console.log("Gemini crashed, switching to Groq...");
+  rawText = await callGroq(userPrompt);
+}
+
+// ❗ Final check
+if (!rawText) throw new Error("Both Gemini & Groq failed");
 
     const result = safeParseJSON(rawText);
 
